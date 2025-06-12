@@ -1,0 +1,38 @@
+package com.example.qonnect;
+
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Contact;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.servers.Server;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@OpenAPIDefinition(
+        info = @Info(
+                title = "QONNECT API Documentation",
+                description = "Qonnect creates a unified space for QA engineers, developers, and organizations to " +
+                        "collaborate on bug tracking, resolution, and task management — with personalized dashboards " +
+                        "and interactive, user-focused design.",
+                version = "v1",
+                contact = @Contact(
+                        name = "Precious Etim",
+                        email = "petim7277@gmail.com"
+                )
+        ),
+        servers = {
+                @Server(url = "${swagger.server.url}", description = "Qonnect API Server")
+        }
+//        security = {
+//                @SecurityRequirement(name = "Keycloak")
+//        }
+)
+
+@SpringBootApplication
+public class QonnectApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(QonnectApplication.class, args);
+    }
+
+}
