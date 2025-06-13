@@ -1,4 +1,4 @@
-package com.example.qonnect.infrastructure.adapters.config;
+package com.example.qonnect.infrastructure.adapters.config.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
