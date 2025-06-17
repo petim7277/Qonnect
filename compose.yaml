@@ -1,0 +1,46 @@
+version: '3.8'  # Or remove this line since it's obsolete
+
+services:
+
+  postgres:
+    image: postgres:latest
+    container_name: qonnect-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: Qonnect_DB
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - local
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.0
+    command: start-dev
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - "9090:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_SCHEMA: public
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: password
+      KC_DB_URL: jdbc:postgresql://postgres:5432/Qonnect_DB
+      KC_HOSTNAME: localhost
+      KC_FEATURES: token-exchange,admin-fine-grained-authz
+    networks:
+      - local
+
+volumes:
+  postgres_data:
+
+networks:
+  local:
+    driver: bridge

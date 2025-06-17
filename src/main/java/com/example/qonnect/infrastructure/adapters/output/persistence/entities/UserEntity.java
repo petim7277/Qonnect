@@ -31,3 +31,4 @@ public class UserEntity {
     @ManyToMany(mappedBy = "teamMembers")
     private List<ProjectEntity> projects;
 }
+// fetch = FetchType.EAGER

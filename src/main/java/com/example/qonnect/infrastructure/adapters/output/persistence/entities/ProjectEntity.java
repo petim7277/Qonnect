@@ -1,6 +1,5 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.entities;
 
-import com.example.qonnect.domain.models.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

@@ -2,7 +2,7 @@ package com.example.qonnect.domain.models;
 
 public enum Role {
 
-    ADMIN,
+    ORGANIZATION,
     DEVELOPER,
-    TESTER
+    QA_ENGINEER
 }

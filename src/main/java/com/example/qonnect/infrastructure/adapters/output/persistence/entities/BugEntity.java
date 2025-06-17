@@ -3,7 +3,6 @@ package com.example.qonnect.infrastructure.adapters.output.persistence.entities;
 import com.example.qonnect.domain.models.BugPriority;
 import com.example.qonnect.domain.models.BugSeverity;
 import com.example.qonnect.domain.models.BugStatus;
-import com.example.qonnect.domain.models.Project;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
