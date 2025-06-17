@@ -60,9 +60,6 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
         } catch (UserNotFoundException userNotFoundException) {
             log.error("User not found during JWT conversion", userNotFoundException);
             throw new AuthenticationCredentialsNotFoundException(ErrorMessages.USER_NOT_FOUND, userNotFoundException);
-        } catch (Exception exception) {
-            log.error("=======>>> Authentication failed during JWT conversion", exception);
-            throw new AuthenticationCredentialsNotFoundException(ErrorMessages.AUTHENTICATION_FAILED, exception);
         }
     }
 

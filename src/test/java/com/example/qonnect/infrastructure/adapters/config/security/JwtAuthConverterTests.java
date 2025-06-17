@@ -190,7 +190,7 @@ class JwtAuthConverterTests {
                 .build();
         
         when(userOutputPort.getUserByEmail("test@example.com"))
-                .thenThrow(new RuntimeException("Unexpected error"));
+                .thenThrow(new UserNotFoundException(ErrorMessages.USER_NOT_FOUND,HttpStatus.NOT_FOUND));
 
         // Act & Assert
         AuthenticationCredentialsNotFoundException exception = assertThrows(
@@ -198,7 +198,7 @@ class JwtAuthConverterTests {
                 () -> jwtAuthConverter.convert(jwt)
         );
         
-        assertEquals(ErrorMessages.AUTHENTICATION_FAILED, exception.getMessage());
+        assertEquals(ErrorMessages.USER_NOT_FOUND, exception.getMessage());
         verify(userOutputPort).getUserByEmail("test@example.com");
     }
 }

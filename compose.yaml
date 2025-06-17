@@ -3,7 +3,7 @@ version: '3.8'  # Or remove this line since it's obsolete
 services:
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:latest
     container_name: qonnect-postgres
     restart: always
     ports:

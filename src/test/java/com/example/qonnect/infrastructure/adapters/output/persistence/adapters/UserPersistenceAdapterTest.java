@@ -5,10 +5,13 @@ import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.UserEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.UserPersistenceMapper;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -16,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Slf4j
 @SpringBootTest
 class UserPersistenceAdapterTest {
 
@@ -42,18 +46,20 @@ class UserPersistenceAdapterTest {
         testUserEntity.setKeycloakId("test-keycloak-id");
         testUserEntity.setRole(Role.DEVELOPER);
 
-        userRepository.save(testUserEntity);
     }
 
-    @AfterEach
-    void tearDown() {
-        userRepository.deleteAll();
-    }
+//    @AfterEach
+//    void tearDown() {
+//        userRepository.deleteAll();
+//    }
 
     @Test
     @DisplayName("Should return user when email exists")
     void getUserByEmail_WhenEmailExists_ReturnsUser() {
+       UserEntity savedUser = userRepository.save(testUserEntity);
+       log.info("saved user is ---> {}", savedUser);
         User foundUser = userPersistenceAdapter.getUserByEmail(TEST_EMAIL);
+        log.info("found user is ---> {}", foundUser);
         assertNotNull(foundUser);
         assertEquals(TEST_EMAIL, foundUser.getEmail());
         assertEquals("Test", foundUser.getFirstName());
