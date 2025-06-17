@@ -3,7 +3,6 @@ package com.example.qonnect.domain.models;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Setter
