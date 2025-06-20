@@ -1,20 +1,22 @@
 package com.example.qonnect.domain.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.keycloak.representations.idm.UserRepresentation;
 
 import java.util.List;
 
 @Setter
 @Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class User {
-
     private Long id;
     private String firstName;
     private String lastName;
     private String tokenType;
+    private boolean enabled;
     private String idToken;
     private String newPassword;
     private String scope;

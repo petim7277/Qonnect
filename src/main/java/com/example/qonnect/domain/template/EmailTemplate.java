@@ -3,10 +3,10 @@ package com.example.qonnect.domain.template;
 public class EmailTemplate {
 
 
-    public static String otpTemplate(String otp) {
+    public static String otpTemplate(String name, String otp) {
 
         return String.format("""
-            Hello,
+            Hello %s,
 
             Your one-time password (OTP) is: %s
 
@@ -16,7 +16,7 @@ public class EmailTemplate {
 
             Thanks,
             The Qonnect Team
-            """, otp);
+            """,name, otp);
     }
 
 }

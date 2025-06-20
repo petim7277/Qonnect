@@ -9,7 +9,9 @@ public class ErrorMessages {
     public static final String ERROR_FETCHING_USER_INFORMATION = "error fetching user information";
     public static final String PASSWORD_RESET_FAILED = "password reset failed";
     public static final String INVALID_REQUEST = "invalid request";
-
+    public static final String OTP_NOT_FOUND = "otp not found";
+    public static final String OTP_ALREADY_USED = "otp already used";
+    public static final String OTP_ALREADY_EXPIRED = "otp already expired";
 
 
     public static String roleNotFound(String roleName) {

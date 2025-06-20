@@ -12,4 +12,6 @@ public interface UserPersistenceMapper {
     @Mapping(target = "password", source = "password")
     User toUser(UserEntity userEntity) ;
 
+    UserEntity toUserEntity(User user);
+
 }
