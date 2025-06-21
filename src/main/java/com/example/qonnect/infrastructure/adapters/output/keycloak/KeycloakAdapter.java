@@ -55,7 +55,7 @@ public class KeycloakAdapter implements IdentityManagementOutputPort {
     @Value("${keycloak.client-secret}")
     private String clientSecret;
 
-    @Value("${LOGOUT_URL}")
+    @Value("${app.keycloak.logouturl}")
     private String logoutUrl;
 
     private final Keycloak keycloak;

@@ -37,8 +37,8 @@ class UserServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         user = User.builder()
-                .password("secret")
-                .email("praise@example.com")
+                .password("Password@123")
+                .email("praiseoyewole560@gmail.com")
                 .firstName("Praise")
                 .lastName("Oyewole")
                 .role(Role.QA_ENGINEER)
@@ -80,7 +80,7 @@ class UserServiceTest {
         user.setRole(role);
 
         Exception ex = assertThrows(IllegalArgumentException.class, () -> userService.signUp(user));
-        assertEquals(ErrorMessages.EMPTY_INPUT_ERROR, ex.getMessage());
+        assertEquals(ErrorMessages.EMPTY_EMAIL, ex.getMessage());
     }
 
 

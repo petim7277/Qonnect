@@ -1,4 +1,4 @@
-package com.example.qonnect.infrastructure.adapters.input.rest.data.response;
+package com.example.qonnect.infrastructure.adapters.input.rest.data.responses;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

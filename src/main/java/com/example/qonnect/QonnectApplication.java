@@ -1,9 +1,12 @@
 package com.example.qonnect;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,10 +25,20 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
         ),
         servers = {
                 @Server(url = "${swagger.server.url}", description = "Qonnect API Server")
+        },
+        security = {
+                @SecurityRequirement(name = "Keycloak")
         }
-//        security = {
-//                @SecurityRequirement(name = "Keycloak")
-//        }
+
+        )
+@SecurityScheme(
+        name = "Keycloak",
+        description = "JWT Authentication via Keycloak",
+        scheme = "bearer",
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        in = SecuritySchemeIn.HEADER,
+        openIdConnectUrl = "http://localhost:9090/realms/Qonnect/.well-known/openid-configuration"
 )
 
 @SpringBootApplication
