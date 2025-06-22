@@ -1,6 +1,7 @@
 package com.example.qonnect.domain.services;
 
 import com.example.qonnect.application.input.SignUpUseCase;
+import com.example.qonnect.application.input.VerifyOtpUseCase;
 import com.example.qonnect.application.output.IdentityManagementOutputPort;
 import com.example.qonnect.application.output.OtpOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
@@ -20,7 +21,7 @@ import static com.example.qonnect.domain.validators.InputValidator.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserService implements SignUpUseCase {
+public class UserService implements SignUpUseCase, VerifyOtpUseCase {
 
     private final UserOutputPort userOutputPort;
 
@@ -58,5 +59,19 @@ public class UserService implements SignUpUseCase {
         return user;
     }
 
+
+    @Override
+    public void verifyOtp(String email, String otp) {
+        validateEmail(email);
+        validateInput(otp);
+
+        User user = userOutputPort.getUserByEmail(email);
+        otpService.validateOtp(user.getEmail(), otp);
+
+        user.setEnabled(true);
+        userOutputPort.saveUser(user);
+
+        log.info("OTP verified and user enabled: {}", user.getEmail());
+    }
 
 }

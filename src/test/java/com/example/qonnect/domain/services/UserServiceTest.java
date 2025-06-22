@@ -42,6 +42,7 @@ class UserServiceTest {
                 .firstName("Praise")
                 .lastName("Oyewole")
                 .role(Role.QA_ENGINEER)
+                .enabled(false)
                 .build();
     }
 
@@ -83,6 +84,49 @@ class UserServiceTest {
         assertEquals(ErrorMessages.EMPTY_EMAIL, ex.getMessage());
     }
 
+    @Test
+    void testVerifyOtpSuccess() {
+        String email = user.getEmail();
+        String otp = "123456";
+
+        when(userOutputPort.getUserByEmail(email)).thenReturn(user);
+        doNothing().when(otpService).validateOtp(email, otp);
+        when(userOutputPort.saveUser(user)).thenReturn(user);
+
+        userService.verifyOtp(email, otp);
+
+        assertTrue(user.isEnabled());
+        verify(userOutputPort).getUserByEmail(email);
+        verify(otpService).validateOtp(email, otp);
+        verify(userOutputPort).saveUser(user);
+    }
+
+    @Test
+    void testVerifyOtpFails_InvalidEmail() {
+        String invalidEmail = " ";
+        String otp = "123456";
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.verifyOtp(invalidEmail, otp));
+        assertEquals(ErrorMessages.EMPTY_EMAIL, ex.getMessage());
+
+        verifyNoInteractions(userOutputPort, otpService);
+    }
+
+    @Test
+    void testVerifyOtpFails_InvalidOtp() {
+        String email = user.getEmail();
+        String invalidOtp = "wrong";
+
+        when(userOutputPort.getUserByEmail(email)).thenReturn(user);
+        doThrow(new RuntimeException("Invalid OTP")).when(otpService).validateOtp(email, invalidOtp);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.verifyOtp(email, invalidOtp));
+        assertEquals("Invalid OTP", ex.getMessage());
+
+        verify(userOutputPort).getUserByEmail(email);
+        verify(otpService).validateOtp(email, invalidOtp);
+        verify(userOutputPort, never()).saveUser(any());
+    }
 
     private Role safeParseRole(String input) {
         try {
@@ -91,7 +135,6 @@ class UserServiceTest {
             return null;
         }
     }
-
 
     static Stream<String> invalidInputs() {
         return Stream.of(null, "", " ");

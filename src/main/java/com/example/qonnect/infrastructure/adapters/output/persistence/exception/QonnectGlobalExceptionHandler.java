@@ -82,6 +82,26 @@ public class QonnectGlobalExceptionHandler {
         );
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
+  @ExceptionHandler(OtpException.class)
+    public ResponseEntity<ErrorResponse> handleOtpException(OtpException otpException) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                otpException.getMessage(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(OtpNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleOtpNotFoundException(OtpNotFoundException otpNotFoundException) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                otpNotFoundException.getMessage(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
 
 
 
