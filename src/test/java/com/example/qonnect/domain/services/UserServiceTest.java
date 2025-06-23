@@ -201,6 +201,83 @@ class UserServiceTest {
         verifyNoInteractions(otpService, identityManagementOutputPort);
     }
 
+    @Test
+    void testChangePassword_Success() {
+        String email = user.getEmail();
+        String oldPassword = "OldPassword@123";
+        String newPassword = "NewPassword@456";
+
+        user.setPassword("encoded-old");
+
+        when(userOutputPort.getUserByEmail(email)).thenReturn(user);
+        when(passwordEncoder.matches(oldPassword, user.getPassword())).thenReturn(true);
+        when(passwordEncoder.matches(newPassword, user.getPassword())).thenReturn(false);
+        when(passwordEncoder.encode(newPassword)).thenReturn("encoded-new");
+
+        userService.changePassword(email, oldPassword, newPassword);
+
+        assertEquals("encoded-new", user.getPassword());
+        assertEquals("encoded-new", user.getNewPassword());
+
+        verify(identityManagementOutputPort).changePassword(user);
+        verify(userOutputPort).saveUser(user);
+    }
+
+    @Test
+    void testChangePassword_Fails_IncorrectOldPassword() {
+        String email = user.getEmail();
+        String oldPassword = "Wrong@123";
+        String newPassword = "NewPassword@456";
+
+        user.setPassword("encoded-correct");
+
+        when(userOutputPort.getUserByEmail(email)).thenReturn(user);
+        when(passwordEncoder.matches(oldPassword, user.getPassword())).thenReturn(false);
+
+        IdentityManagementException ex = assertThrows(IdentityManagementException.class, () ->
+                userService.changePassword(email, oldPassword, newPassword));
+
+        assertEquals(ErrorMessages.INCORRECT_OLD_PASSWORD, ex.getMessage());
+
+        verify(identityManagementOutputPort, never()).changePassword(any());
+        verify(userOutputPort, never()).saveUser(any());
+    }
+
+    @Test
+    void testChangePassword_Fails_NewPasswordSameAsOld() {
+        String email = user.getEmail();
+        String password = "SamePassword@123";
+
+        user.setPassword("encoded-pass");
+
+        when(userOutputPort.getUserByEmail(email)).thenReturn(user);
+        when(passwordEncoder.matches(password, user.getPassword())).thenReturn(true);
+
+        IdentityManagementException ex = assertThrows(IdentityManagementException.class, () ->
+                userService.changePassword(email, password, password));
+
+        assertEquals(ErrorMessages.NEW_PASSWORD_SAME_AS_OLD, ex.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+
+        verify(identityManagementOutputPort, never()).changePassword(any());
+        verify(userOutputPort, never()).saveUser(any());
+    }
+
+    @Test
+    void testChangePassword_Fails_EmptyPassword() {
+        String email = user.getEmail();
+        String oldPassword = "";
+        String newPassword = "";
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                userService.changePassword(email, oldPassword, newPassword));
+
+        assertEquals(ErrorMessages.EMPTY_PASSWORD, ex.getMessage());
+        verifyNoInteractions(identityManagementOutputPort);
+        verifyNoInteractions(userOutputPort);
+    }
+
+
 
     private Role safeParseRole(String input) {
         try {

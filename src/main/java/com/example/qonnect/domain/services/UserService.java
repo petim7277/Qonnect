@@ -1,5 +1,6 @@
 package com.example.qonnect.domain.services;
 
+import com.example.qonnect.application.input.ChangePasswordUseCase;
 import com.example.qonnect.application.input.ResetPasswordUseCase;
 import com.example.qonnect.application.input.SignUpUseCase;
 import com.example.qonnect.application.input.VerifyOtpUseCase;
@@ -23,7 +24,7 @@ import static com.example.qonnect.domain.validators.InputValidator.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase {
+public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase, ChangePasswordUseCase {
 
     private final UserOutputPort userOutputPort;
 
@@ -93,5 +94,31 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswo
         identityManagementOutputPort.resetPassword(user);
         log.info("Password reset successful for user: {}", email);
     }
+
+    @Override
+    public void changePassword(String email, String oldPassword, String newPassword) {
+        validateEmail(email);
+        validatePassword(oldPassword);
+        validatePassword(newPassword);
+
+        User user = userOutputPort.getUserByEmail(email);
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new IdentityManagementException(ErrorMessages.INCORRECT_OLD_PASSWORD, HttpStatus.UNAUTHORIZED);
+        }
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IdentityManagementException(ErrorMessages.NEW_PASSWORD_SAME_AS_OLD, HttpStatus.BAD_REQUEST);
+        }
+
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        user.setNewPassword(encodedNewPassword);
+        user.setPassword(encodedNewPassword);
+
+        identityManagementOutputPort.changePassword(user);
+
+        userOutputPort.saveUser(user);
+    }
+
+
 
 }

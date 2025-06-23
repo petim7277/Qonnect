@@ -21,6 +21,8 @@ public class ErrorMessages {
     public static final String EMPTY_ROLE = "Role cannot be empty";
     public static final String INVALID_ROLE = "Invalid role";
     public static final String INVALID_OTP = "Invalid otp";
+    public static final String INCORRECT_OLD_PASSWORD = "Old password is incorrect";
+    public static final String NEW_PASSWORD_SAME_AS_OLD = "New password must be different from the old password";
 
 
     public static String roleNotFound(String roleName) {

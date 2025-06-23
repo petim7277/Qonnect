@@ -1,5 +1,6 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 
+import com.example.qonnect.application.input.ChangePasswordUseCase;
 import com.example.qonnect.application.input.ResetPasswordUseCase;
 import com.example.qonnect.application.input.SignUpUseCase;
 import com.example.qonnect.application.input.VerifyOtpUseCase;
@@ -9,14 +10,8 @@ import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Role;
 import com.example.qonnect.domain.models.User;
-import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CompleteResetPasswordRequest;
-import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.InitiateResetPasswordRequest;
-import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.OtpVerificationRequest;
-import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.RegisterUserRequest;
-import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.CompleteResetPasswordResponse;
-import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.InitiateResetPasswordResponse;
-import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.OtpVerificationResponse;
-import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.RegisterUserResponse;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.*;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.*;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.UserRestMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,6 +19,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +46,7 @@ public class UserController {
     private final UserRestMapper userRestMapper;
     private final VerifyOtpUseCase verifyOtpUseCase;
     private final ResetPasswordUseCase resetPasswordUseCase;
+    private final ChangePasswordUseCase changePasswordUseCase;
 
 
     @Operation(summary = "Register a new user", description = "Creates a new user account")
@@ -107,6 +104,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "OTP sent to email"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @SecurityRequirement(name = "Keycloak")
     @PostMapping("/password/reset/initiate")
     public ResponseEntity<InitiateResetPasswordResponse> initiatePasswordReset(@AuthenticationPrincipal User user
 
@@ -119,12 +117,14 @@ public class UserController {
 
 
 
+
     @Operation(summary = "Complete password reset", description = "Verifies OTP and sets new password")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Password reset successful"),
             @ApiResponse(responseCode = "400", description = "Invalid OTP or password"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @SecurityRequirement(name = "Keycloak")
     @PostMapping("/password/reset/complete")
     public ResponseEntity<CompleteResetPasswordResponse> completePasswordReset(@AuthenticationPrincipal User user,
             @Valid @RequestBody CompleteResetPasswordRequest request
@@ -132,5 +132,26 @@ public class UserController {
         resetPasswordUseCase.completeReset(user.getEmail(), request.getOtp(), request.getNewPassword());
 
         return ResponseEntity.ok(new CompleteResetPasswordResponse("Password reset successful.",LocalDateTime.now()));
+    }
+
+
+    @Operation(summary = "Change password", description = "Allows an authenticated user to change their password")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Password changed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input or new password same as old"),
+            @ApiResponse(responseCode = "401", description = "Incorrect old password or unauthorized"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @SecurityRequirement(name = "Keycloak")
+    @PostMapping("/password/change")
+    public ResponseEntity<ChangePasswordResponse> changePassword(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        changePasswordUseCase.changePassword(user.getEmail(), request.getOldPassword(), request.getNewPassword());
+
+        return ResponseEntity.ok(
+                new ChangePasswordResponse("Password changed successfully.", LocalDateTime.now())
+        );
     }
 }
