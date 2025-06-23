@@ -3,6 +3,7 @@ package com.example.qonnect.domain.services;
 import com.example.qonnect.application.output.IdentityManagementOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.IdentityManagementException;
+import com.example.qonnect.domain.exceptions.OtpException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
 import com.example.qonnect.domain.models.OtpType;
 import com.example.qonnect.domain.models.Role;
@@ -15,6 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.stream.Stream;
@@ -128,6 +130,78 @@ class UserServiceTest {
         verify(userOutputPort, never()).saveUser(any());
     }
 
+
+    @Test
+    void testInitiateResetSuccess() {
+        String email = user.getEmail();
+
+        when(userOutputPort.getUserByEmail(email)).thenReturn(user);
+        when(otpService.createOtp(user.getFirstName(), email, OtpType.RESET_PASSWORD))
+                .thenReturn(null);
+        userService.initiateReset(email);
+
+        verify(userOutputPort).getUserByEmail(email);
+        verify(otpService).createOtp(user.getFirstName(), email, OtpType.RESET_PASSWORD);
+    }
+
+    @Test
+    void testInitiateResetFails_InvalidEmail() {
+        String invalidEmail = "";
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> userService.initiateReset(invalidEmail));
+
+        assertEquals(ErrorMessages.EMPTY_EMAIL, ex.getMessage());
+        verifyNoInteractions(userOutputPort, otpService);
+    }
+
+    @Test
+    void testCompleteResetSuccess() {
+        String newPassword = "NewPassword@123";
+        String otp = "123456";
+
+        when(userOutputPort.getUserByEmail(user.getEmail())).thenReturn(user);
+        doNothing().when(otpService).validateOtp(user.getEmail(), otp);
+        doNothing().when(identityManagementOutputPort).resetPassword(any(User.class));
+
+        userService.completeReset(user.getEmail(), otp, newPassword);
+
+        assertEquals(newPassword, user.getPassword());
+        verify(userOutputPort).getUserByEmail(user.getEmail());
+        verify(otpService).validateOtp(user.getEmail(), otp);
+        verify(identityManagementOutputPort).resetPassword(user);
+    }
+
+    @Test
+    void testCompleteResetFails_InvalidOtp() {
+        String newPassword = "NewPassword@123";
+        String invalidOtp = "000000";
+
+        when(userOutputPort.getUserByEmail(user.getEmail())).thenReturn(user);
+        doThrow(new OtpException(ErrorMessages.INVALID_OTP, HttpStatus.BAD_REQUEST))
+                .when(otpService).validateOtp(user.getEmail(), invalidOtp);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                userService.completeReset(user.getEmail(), invalidOtp, newPassword));
+
+        assertEquals(ErrorMessages.INVALID_OTP, ex.getMessage());
+        verify(otpService).validateOtp(user.getEmail(), invalidOtp);
+        verify(identityManagementOutputPort, never()).resetPassword(any());
+    }
+
+    @Test
+    void testCompleteResetFails_EmptyPassword() {
+        String otp = "123456";
+        String emptyPassword = " ";
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                userService.completeReset(user.getEmail(), otp, emptyPassword));
+
+        assertEquals(ErrorMessages.EMPTY_PASSWORD, ex.getMessage());
+        verifyNoInteractions(otpService, identityManagementOutputPort);
+    }
+
+
     private Role safeParseRole(String input) {
         try {
             return input == null ? null : Role.valueOf(input.trim().toUpperCase());
@@ -139,4 +213,6 @@ class UserServiceTest {
     static Stream<String> invalidInputs() {
         return Stream.of(null, "", " ");
     }
+
+
 }

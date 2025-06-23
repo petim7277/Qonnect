@@ -40,7 +40,7 @@ public class OtpPersistenceAdapter implements OtpOutputPort {
 
     @Override
     public Otp findByEmailAndOtp(String email, String otp) {
-        OtpEntity entity = otpRepository.findByEmailAndOtp(email,otp).orElseThrow(()->new OtpNotFoundException(ErrorMessages.OTP_NOT_FOUND, HttpStatus.NOT_FOUND));
+        OtpEntity entity = otpRepository.findByEmailAndOtp(email,otp).orElseThrow(()->new OtpNotFoundException(ErrorMessages.INVALID_OTP, HttpStatus.BAD_REQUEST));
         return otpPersistenceMapper.toOtp(entity);
     }
 

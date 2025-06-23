@@ -1,10 +1,14 @@
 package com.example.qonnect.domain.models;
 
+import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import org.keycloak.representations.idm.UserRepresentation;
 
 import java.util.List;
+import java.util.regex.Pattern;
+
+import static com.example.qonnect.domain.validators.InputValidator.*;
 
 @Setter
 @Getter
@@ -34,6 +38,20 @@ public class User {
     private String password;
     private List<Project> projects;
     private Role role;
+
+
+
+
+    public static void validateUserDetails(User user) {
+
+       validateEmail(user.getEmail());
+       validatePassword(user.getPassword());
+       validateName(user.getFirstName(), "First name");
+       validateName(user.getLastName(), "Last name");
+       validateRole(user.getRole() != null ? user.getRole().name() : null);
+
+    }
+
 
 }
 

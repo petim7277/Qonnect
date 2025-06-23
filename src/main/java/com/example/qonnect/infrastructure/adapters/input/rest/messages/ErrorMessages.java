@@ -20,6 +20,7 @@ public class ErrorMessages {
     public static final String WEAK_PASSWORD = "Password must include uppercase, lowercase, number, and special character";
     public static final String EMPTY_ROLE = "Role cannot be empty";
     public static final String INVALID_ROLE = "Invalid role";
+    public static final String INVALID_OTP = "Invalid otp";
 
 
     public static String roleNotFound(String roleName) {

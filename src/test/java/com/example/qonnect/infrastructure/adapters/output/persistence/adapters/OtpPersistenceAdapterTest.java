@@ -91,7 +91,7 @@ class OtpPersistenceAdapterTest {
         OtpNotFoundException exception = assertThrows(OtpNotFoundException.class, () ->
                 otpPersistenceAdapter.findByEmailAndOtp(email, otpCode));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(otpRepository).findByEmailAndOtp(email, otpCode);
         verifyNoInteractions(otpPersistenceMapper);
     }

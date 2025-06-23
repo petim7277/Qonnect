@@ -1,5 +1,6 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 
+import com.example.qonnect.application.input.ResetPasswordUseCase;
 import com.example.qonnect.application.input.SignUpUseCase;
 import com.example.qonnect.application.input.VerifyOtpUseCase;
 import com.example.qonnect.domain.exceptions.IdentityManagementException;
@@ -8,8 +9,12 @@ import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Role;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CompleteResetPasswordRequest;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.InitiateResetPasswordRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.OtpVerificationRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.RegisterUserRequest;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.CompleteResetPasswordResponse;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.InitiateResetPasswordResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.OtpVerificationResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.RegisterUserResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.UserRestMapper;
@@ -25,6 +30,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +49,7 @@ public class UserController {
     private final SignUpUseCase signUpUseCase;
     private final UserRestMapper userRestMapper;
     private final VerifyOtpUseCase verifyOtpUseCase;
+    private final ResetPasswordUseCase resetPasswordUseCase;
 
 
     @Operation(summary = "Register a new user", description = "Creates a new user account")
@@ -92,5 +100,37 @@ public class UserController {
         response.setVerifiedAt(LocalDateTime.now());
 
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Initiate password reset", description = "Sends an OTP to the user's email for password reset")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OTP sent to email"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PostMapping("/password/reset/initiate")
+    public ResponseEntity<InitiateResetPasswordResponse> initiatePasswordReset(@AuthenticationPrincipal User user
+
+    ) {
+        resetPasswordUseCase.initiateReset(user.getEmail());
+
+        return ResponseEntity.ok(new InitiateResetPasswordResponse("OTP sent to your email for password reset.",LocalDateTime.now()));
+    }
+
+
+
+
+    @Operation(summary = "Complete password reset", description = "Verifies OTP and sets new password")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Password reset successful"),
+            @ApiResponse(responseCode = "400", description = "Invalid OTP or password"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PostMapping("/password/reset/complete")
+    public ResponseEntity<CompleteResetPasswordResponse> completePasswordReset(@AuthenticationPrincipal User user,
+            @Valid @RequestBody CompleteResetPasswordRequest request
+    ) {
+        resetPasswordUseCase.completeReset(user.getEmail(), request.getOtp(), request.getNewPassword());
+
+        return ResponseEntity.ok(new CompleteResetPasswordResponse("Password reset successful.",LocalDateTime.now()));
     }
 }

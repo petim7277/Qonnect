@@ -6,11 +6,8 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class OtpVerificationRequest {
+public class InitiateResetPasswordRequest {
+
     @NotBlank(message = "Email must not be blank")
     private String email;
-
-    @NotBlank(message = "Otp must not be blank")
-    private String otp;
-
 }

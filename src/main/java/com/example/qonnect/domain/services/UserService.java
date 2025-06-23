@@ -1,5 +1,6 @@
 package com.example.qonnect.domain.services;
 
+import com.example.qonnect.application.input.ResetPasswordUseCase;
 import com.example.qonnect.application.input.SignUpUseCase;
 import com.example.qonnect.application.input.VerifyOtpUseCase;
 import com.example.qonnect.application.output.IdentityManagementOutputPort;
@@ -16,12 +17,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import static com.example.qonnect.domain.models.User.validateUserDetails;
 import static com.example.qonnect.domain.validators.InputValidator.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserService implements SignUpUseCase, VerifyOtpUseCase {
+public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase {
 
     private final UserOutputPort userOutputPort;
 
@@ -34,12 +36,7 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase {
 
     @Override
     public User signUp(User user) throws UserAlreadyExistException, IdentityManagementException {
-        validateEmail(user.getEmail());
-        validateName(user.getFirstName(), "First name");
-        validateName(user.getLastName(), "Last name");
-        validatePassword(user.getPassword());
-        validateRole(user.getRole().name());
-
+        validateUserDetails(user);
         if (userOutputPort.userExistsByEmail(user.getEmail())) {
             throw new UserAlreadyExistException(ErrorMessages.USER_EXISTS_ALREADY, HttpStatus.CONFLICT);
         }
@@ -72,6 +69,29 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase {
         userOutputPort.saveUser(user);
 
         log.info("OTP verified and user enabled: {}", user.getEmail());
+    }
+
+    @Override
+    public void initiateReset(String email) {
+        validateEmail(email);
+        User user = userOutputPort.getUserByEmail(email);
+
+        otpService.createOtp(user.getFirstName(), user.getEmail(), OtpType.RESET_PASSWORD);
+        log.info("Reset password OTP sent to: {}", email);
+    }
+
+    @Override
+    public void completeReset(String email, String otp, String newPassword) {
+        validateEmail(email);
+        validatePassword(newPassword);
+        validateInput(otp);
+
+        User user = userOutputPort.getUserByEmail(email);
+        otpService.validateOtp(user.getEmail(), otp);
+
+        user.setPassword(newPassword);
+        identityManagementOutputPort.resetPassword(user);
+        log.info("Password reset successful for user: {}", email);
     }
 
 }

@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-
 import java.time.LocalDateTime;
 
 import static com.example.qonnect.domain.validators.InputValidator.validateInput;
@@ -37,7 +36,6 @@ public class OtpService implements CreateOtpUseCase, ValidateOtpUseCase, ResendO
     @Value("${otp.expiry.verify-account}")
     private Long verificationExpiry;
 
-
     @Override
     public Otp createOtp(String name, String email, OtpType otpType) {
         String otp = generateOtp();
@@ -53,14 +51,25 @@ public class OtpService implements CreateOtpUseCase, ValidateOtpUseCase, ResendO
                 .build();
 
         otpOutputPort.saveOtp(otpObj);
-        String body = EmailTemplate.otpTemplate(name,otp);
-        emailOutputPort.sendEmail(email, "Your OTP for Registration", body);
+
+        String body = switch (otpType) {
+            case VERIFICATION -> EmailTemplate.otpTemplate(name, otp);
+            case RESET_PASSWORD -> EmailTemplate.resetPasswordTemplate(name, otp);
+        };
+
+        String subject = switch (otpType) {
+            case VERIFICATION -> "Your OTP for Registration";
+            case RESET_PASSWORD -> "Your OTP to Reset Password";
+        };
+
+        emailOutputPort.sendEmail(email, subject, body);
+
         return otpObj;
     }
 
     @Override
-    public Otp resendOtp(String name,String email, OtpType otpType) {
-        return createOtp(name,email, otpType);
+    public Otp resendOtp(String name, String email, OtpType otpType) {
+        return createOtp(name, email, otpType);
     }
 
     @Override
@@ -91,8 +100,6 @@ public class OtpService implements CreateOtpUseCase, ValidateOtpUseCase, ResendO
             case RESET_PASSWORD -> resetPasswordExpiry;
             case VERIFICATION -> verificationExpiry;
         };
-        return LocalDateTime.now().plusMinutes(minutes + 3);
+        return LocalDateTime.now().plusMinutes(minutes);
     }
 }
-
-

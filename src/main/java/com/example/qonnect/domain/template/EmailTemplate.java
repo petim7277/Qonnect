@@ -19,4 +19,23 @@ public class EmailTemplate {
             """,name, otp);
     }
 
+
+
+    public static String resetPasswordTemplate(String name, String otp) {
+        return String.format("""
+            Hello %s,
+
+            We received a request to reset your password.
+
+            Your OTP is: %s
+
+            Enter this code in the app to reset your password. This code will expire in 10 minutes.
+
+            If you did not request a password reset, please ignore this email or contact support.
+
+            Thanks,
+            The Qonnect Team
+            """, name, otp);
+    }
+
 }
