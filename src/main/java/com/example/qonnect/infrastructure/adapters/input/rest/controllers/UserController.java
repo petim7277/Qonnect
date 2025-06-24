@@ -1,9 +1,6 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 
-import com.example.qonnect.application.input.ChangePasswordUseCase;
-import com.example.qonnect.application.input.ResetPasswordUseCase;
-import com.example.qonnect.application.input.SignUpUseCase;
-import com.example.qonnect.application.input.VerifyOtpUseCase;
+import com.example.qonnect.application.input.*;
 import com.example.qonnect.domain.exceptions.IdentityManagementException;
 import com.example.qonnect.domain.exceptions.OtpException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
@@ -47,6 +44,7 @@ public class UserController {
     private final VerifyOtpUseCase verifyOtpUseCase;
     private final ResetPasswordUseCase resetPasswordUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
+    private final LogoutUseCase logoutUseCase;
 
 
     @Operation(summary = "Register a new user", description = "Creates a new user account")
@@ -154,4 +152,25 @@ public class UserController {
                 new ChangePasswordResponse("Password changed successfully.", LocalDateTime.now())
         );
     }
+
+
+    @Operation(summary = "Logout user", description = "Invalidates refresh token and logs out the user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User logged out successfully"),
+            @ApiResponse(responseCode = "400", description = "Missing or invalid refresh token"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized user")
+    })
+    @SecurityRequirement(name = "Keycloak")
+    @PostMapping("/logout")
+    public ResponseEntity<LogoutResponse> logout(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody LogoutRequest request
+    ) {
+        logoutUseCase.logout(user, request.getRefreshToken());
+
+        return ResponseEntity.ok(
+                new LogoutResponse("Logout successful", LocalDateTime.now())
+        );
+    }
+
 }

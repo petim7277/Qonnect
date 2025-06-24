@@ -278,6 +278,15 @@ class UserServiceTest {
     }
 
 
+    @Test
+    void testLogout_CallsIdentityManagementOutputPort() {
+        String refreshToken = "sample-refresh-token";
+
+        userService.logout(user, refreshToken);
+
+        verify(identityManagementOutputPort).logout(user, refreshToken);
+    }
+
 
     private Role safeParseRole(String input) {
         try {

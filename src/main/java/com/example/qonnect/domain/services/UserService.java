@@ -1,9 +1,6 @@
 package com.example.qonnect.domain.services;
 
-import com.example.qonnect.application.input.ChangePasswordUseCase;
-import com.example.qonnect.application.input.ResetPasswordUseCase;
-import com.example.qonnect.application.input.SignUpUseCase;
-import com.example.qonnect.application.input.VerifyOtpUseCase;
+import com.example.qonnect.application.input.*;
 import com.example.qonnect.application.output.IdentityManagementOutputPort;
 import com.example.qonnect.application.output.OtpOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
@@ -24,7 +21,7 @@ import static com.example.qonnect.domain.validators.InputValidator.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase, ChangePasswordUseCase {
+public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase, ChangePasswordUseCase, LogoutUseCase {
 
     private final UserOutputPort userOutputPort;
 
@@ -120,5 +117,8 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswo
     }
 
 
-
+    @Override
+    public void logout(User user, String refreshToken) {
+        identityManagementOutputPort.logout(user,refreshToken);
+    }
 }
