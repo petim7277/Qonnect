@@ -5,6 +5,7 @@ import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.IdentityManagementException;
 import com.example.qonnect.domain.exceptions.OtpException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
+import com.example.qonnect.domain.models.Otp;
 import com.example.qonnect.domain.models.OtpType;
 import com.example.qonnect.domain.models.Role;
 import com.example.qonnect.domain.models.User;
@@ -21,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.stream.Stream;
 
+import static com.example.qonnect.domain.models.OtpType.VERIFICATION;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -59,7 +61,7 @@ class UserServiceTest {
 
         assertNotNull(registered);
         assertEquals(user.getEmail(), registered.getEmail());
-        verify(otpService).createOtp(user.getFirstName(), user.getEmail(), OtpType.VERIFICATION);
+        verify(otpService).createOtp(user.getFirstName(), user.getEmail(), VERIFICATION);
     }
 
     @Test
@@ -278,6 +280,8 @@ class UserServiceTest {
     }
 
 
+
+
     @Test
     void testLogout_CallsIdentityManagementOutputPort() {
         String refreshToken = "sample-refresh-token";
@@ -286,6 +290,28 @@ class UserServiceTest {
 
         verify(identityManagementOutputPort).logout(user, refreshToken);
     }
+
+    @Test
+    void testResendOtp_Success() {
+        when(userOutputPort.getUserByEmail(user.getEmail())).thenReturn(user);
+        when(otpService.createOtp(user.getFirstName(), user.getEmail(), VERIFICATION)).thenReturn(null);
+
+        userService.resendOtp(user.getEmail(),VERIFICATION);
+
+        verify(userOutputPort).getUserByEmail(user.getEmail());
+        verify(otpService).resendOtp(user.getFirstName(), user.getEmail(), VERIFICATION);
+    }
+
+    @Test
+    void testResendOtp_Fails_EmptyEmail() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> userService.resendOtp(" ", VERIFICATION));
+
+        assertEquals(ErrorMessages.EMPTY_EMAIL, ex.getMessage());
+        verifyNoInteractions(userOutputPort, otpService);
+    }
+
+
 
 
     private Role safeParseRole(String input) {

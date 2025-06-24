@@ -21,7 +21,7 @@ import static com.example.qonnect.domain.validators.InputValidator.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase, ChangePasswordUseCase, LogoutUseCase {
+public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase, ChangePasswordUseCase, LogoutUseCase, ResendOtpUseCases {
 
     private final UserOutputPort userOutputPort;
 
@@ -120,5 +120,13 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswo
     @Override
     public void logout(User user, String refreshToken) {
         identityManagementOutputPort.logout(user,refreshToken);
+    }
+
+
+    @Override
+    public void resendOtp(String email, OtpType otpType) {
+        validateEmail(email);
+        User foundUser = userOutputPort.getUserByEmail(email);
+        otpService.resendOtp(foundUser.getFirstName(), foundUser.getEmail(), otpType);
     }
 }

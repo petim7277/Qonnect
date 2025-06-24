@@ -45,6 +45,7 @@ public class UserController {
     private final ResetPasswordUseCase resetPasswordUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
     private final LogoutUseCase logoutUseCase;
+    private final ResendOtpUseCases resendOtpUseCases;
 
 
     @Operation(summary = "Register a new user", description = "Creates a new user account")
@@ -172,5 +173,27 @@ public class UserController {
                 new LogoutResponse("Logout successful", LocalDateTime.now())
         );
     }
+
+
+    @Operation(summary = "Resend OTP", description = "Resends OTP for verification or password reset")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OTP resent successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request or email")
+    })
+    @PostMapping("/otp/resend")
+    public ResponseEntity<OtpVerificationResponse> resendOtp(
+            @Valid @RequestBody ResendOtpRequest request
+    ) {
+        resendOtpUseCases.resendOtp(request.getEmail(), request.getOtpType());
+
+        OtpVerificationResponse response = new OtpVerificationResponse();
+        response.setEmail(request.getEmail());
+        response.setMessage("OTP resent successfully.");
+        response.setVerified(false);
+        response.setVerifiedAt(LocalDateTime.now());
+
+        return ResponseEntity.ok(response);
+    }
+
 
 }
