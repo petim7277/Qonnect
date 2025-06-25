@@ -311,6 +311,30 @@ class UserServiceTest {
         verifyNoInteractions(userOutputPort, otpService);
     }
 
+    @Test
+    void testViewUserProfile_Success() {
+        String email = user.getEmail();
+
+        when(userOutputPort.getUserByEmail(email)).thenReturn(user);
+
+        User result = userService.viewUserProfile(email);
+
+        assertNotNull(result);
+        assertEquals(user.getEmail(), result.getEmail());
+        verify(userOutputPort).getUserByEmail(email);
+    }
+
+    @Test
+    void testViewUserProfile_Fails_InvalidEmail() {
+        String invalidEmail = " ";
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                userService.viewUserProfile(invalidEmail)
+        );
+
+        assertEquals(ErrorMessages.EMPTY_EMAIL, ex.getMessage());
+        verifyNoInteractions(userOutputPort);
+    }
 
 
 

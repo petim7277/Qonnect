@@ -25,10 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
@@ -46,6 +43,7 @@ public class UserController {
     private final ChangePasswordUseCase changePasswordUseCase;
     private final LogoutUseCase logoutUseCase;
     private final ResendOtpUseCases resendOtpUseCases;
+    private final ViewUserProfileUseCase viewUserProfileUseCase;
 
 
     @Operation(summary = "Register a new user", description = "Creates a new user account")
@@ -194,6 +192,14 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+
+
+    @GetMapping("/userProfile")
+    public ResponseEntity<UserProfileResponse> getUserProfile(@AuthenticationPrincipal User user) {
+        User profile = viewUserProfileUseCase.viewUserProfile(user.getEmail());
+        return ResponseEntity.ok(userRestMapper.toUserProfileResponse(profile));
+    }
+
 
 
 }
