@@ -7,4 +7,6 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "spring")
 public interface ProjectPersistenceMapper {
     Project  toProject(ProjectEntity project);
+
+    ProjectEntity  toProjectEntity(Project project);
 }

@@ -59,4 +59,9 @@ public class UserPersistenceAdapter implements UserOutputPort {
         validateInput(email);
         return userRepository.existsByEmail(email);
     }
+
+    @Override
+    public boolean existById(Long id) {
+        return userRepository.existsById(id);
+    }
 }
