@@ -4,7 +4,7 @@ import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMess
 
 public enum Role {
 
-    ORGANIZATION,
+    ADMIN,
     DEVELOPER,
     QA_ENGINEER;
 

@@ -23,6 +23,7 @@ public class User {
     private boolean enabled;
     private String idToken;
     private String newPassword;
+    private Organization organization;
     private String scope;
     @JsonProperty("access_token")
     protected String accessToken;
