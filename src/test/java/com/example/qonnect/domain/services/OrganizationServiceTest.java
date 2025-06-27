@@ -1,5 +1,6 @@
 package com.example.qonnect.domain.services;
 
+import com.example.qonnect.application.output.EmailOutputPort;
 import com.example.qonnect.application.output.IdentityManagementOutputPort;
 import com.example.qonnect.application.output.OrganizationOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
@@ -17,6 +18,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.stream.Stream;
@@ -31,6 +33,7 @@ class OrganizationServiceTest {
     @Mock private IdentityManagementOutputPort identityManagementOutputPort;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private OtpService otpService;
+    @Mock private EmailOutputPort emailOutputPort;
 
     @InjectMocks
     private OrganizationService registrationService;
@@ -46,7 +49,8 @@ class OrganizationServiceTest {
                 organizationOutputPort,
                 identityManagementOutputPort,
                 passwordEncoder,
-                otpService
+                otpService,
+                emailOutputPort
         );
 
         user = new User();
@@ -110,6 +114,7 @@ class OrganizationServiceTest {
         assertThrows(IllegalArgumentException.class, () -> registrationService.registerOrganizationAdmin(user, organization));
     }
 
+
     @ParameterizedTest
     @MethodSource("invalidInputs")
     public void testInvalidUserInput(String input){
@@ -120,6 +125,70 @@ class OrganizationServiceTest {
         user1.setPassword(input);
         assertThrows(IllegalArgumentException.class, () -> registrationService.registerOrganizationAdmin(user1, org));
     }
+
+
+    @Test
+    void shouldInviteUserSuccessfully() {
+
+        User inviter = new User();
+        inviter.setRole(Role.ADMIN);
+        inviter.setOrganization(org);
+
+        String inviteeEmail = "invitee@example.com";
+
+        when(userOutputPort.userExistsByEmail(inviteeEmail)).thenReturn(false);
+
+        registrationService.inviteUser(inviter, inviteeEmail, Role.QA_ENGINEER);
+
+        verify(userOutputPort, times(1)).saveUser(argThat(u ->
+                inviteeEmail.equals(u.getEmail())
+                        && u.getRole() == Role.QA_ENGINEER
+                        && u.isInvited()
+                        && !u.isEnabled()
+                        && u.getOrganization() == org
+                        && u.getInviteToken() != null
+        ));
+
+        verify(emailOutputPort, times(1))
+                .sendEmail(eq(inviteeEmail), contains("You're Invited"), anyString());
+    }
+
+    @Test
+    void shouldThrowWhenInviterIsNotAdmin() {
+        User inviter = new User();
+        inviter.setRole(Role.QA_ENGINEER);
+
+        assertThrows(AccessDeniedException.class,
+                () -> registrationService.inviteUser(inviter, "new@qonnect.com", Role.QA_ENGINEER));
+
+        verifyNoInteractions(emailOutputPort, userOutputPort);
+    }
+
+    @Test
+    void shouldThrowWhenInviteeAlreadyExists() {
+        User inviter = new User();
+        inviter.setRole(Role.ADMIN);
+        inviter.setOrganization(org);
+
+        when(userOutputPort.userExistsByEmail("dup@qonnect.com")).thenReturn(true);
+
+        assertThrows(UserAlreadyExistException.class,
+                () -> registrationService.inviteUser(inviter, "dup@qonnect.com", Role.QA_ENGINEER));
+
+        verify(emailOutputPort, never()).sendEmail(anyString(), anyString(), anyString());
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidInputs")
+    void shouldThrowWhenInviteeEmailIsInvalid(String invalidEmail) {
+        User inviter = new User();
+        inviter.setRole(Role.ADMIN);
+        inviter.setOrganization(org);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                registrationService.inviteUser(inviter, invalidEmail, Role.QA_ENGINEER));
+    }
+
 
     static Stream<String> invalidInputs() {
         return Stream.of(null, "", " ");

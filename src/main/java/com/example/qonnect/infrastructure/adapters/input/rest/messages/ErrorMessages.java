@@ -25,6 +25,7 @@ public class ErrorMessages {
     public static final String NEW_PASSWORD_SAME_AS_OLD = "New password must be different from the old password";
     public static final String ORGANIZATION_NOT_FOUND = "Organization not found";
     public static final String ORGANIZATION_ALREADY_EXISTS = "Organization already exists";
+    public static final String ACCESS_DENIED = "Only admins can invite users.";
 
 
     public static String roleNotFound(String roleName) {

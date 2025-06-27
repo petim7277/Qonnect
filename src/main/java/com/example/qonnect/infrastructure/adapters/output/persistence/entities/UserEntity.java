@@ -5,11 +5,11 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
-
 @Entity
-@Setter
 @Getter
+@Setter
 public class UserEntity {
 
     @Id
@@ -17,7 +17,6 @@ public class UserEntity {
     private Long id;
 
     private String firstName;
-
     private String lastName;
 
     @Column(unique = true, nullable = false)
@@ -25,17 +24,31 @@ public class UserEntity {
 
     private String password;
 
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private OrganizationEntity organization;
-
-
     private String keycloakId;
+
 
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @Column(nullable = true)
+    private boolean enabled;
+
+    @Column(nullable = true)
+    private boolean invited;
+
+    @ManyToOne
+    @JoinColumn(name = "organization_id")
+    private OrganizationEntity organization;
+
     @ManyToMany(mappedBy = "teamMembers")
     private List<ProjectEntity> projects;
+
+    private LocalDateTime invitedAt;
+    private String inviteToken;
+    private LocalDateTime tokenExpiresAt;
+
+
+    @Column(nullable = true)
+    private boolean expired;
 }
-// fetch = FetchType.EAGER
+

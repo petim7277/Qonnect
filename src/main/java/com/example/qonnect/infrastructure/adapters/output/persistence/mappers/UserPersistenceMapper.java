@@ -5,13 +5,14 @@ import com.example.qonnect.infrastructure.adapters.output.persistence.entities.U
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValuePropertyMappingStrategy;
-
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring",
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserPersistenceMapper {
 
+    @Mapping(target = "organization.users",  ignore = true)
+    @Mapping(target = "organization.projects", ignore = true)
     @Mapping(target = "password", source = "password")
-    User toUser(UserEntity userEntity) ;
+    User toUser(UserEntity entity);
 
     UserEntity toUserEntity(User user);
-
 }

@@ -38,4 +38,24 @@ public class EmailTemplate {
             """, name, otp);
     }
 
+    public static String generateInviteBody(String organizationName, String inviteLink) {
+        return String.format("""
+        Hello,
+
+        You've been invited to join the organization **%s** on our platform.
+
+        To complete your registration, please click the link below and follow the instructions:
+
+        👉 %s
+
+        This invitation link will expire in **7 days**, so make sure to complete your setup as soon as possible.
+
+        If you did not expect this invitation, you can ignore this message.
+
+        Best regards, \s
+        The Qonnect Team
+       \s""", organizationName, inviteLink);
+    }
+
+
 }

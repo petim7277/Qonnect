@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import org.keycloak.representations.idm.UserRepresentation;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -34,6 +35,9 @@ public class User {
     @JsonProperty("refresh_token")
     protected String refreshToken;
     private String email;
+    private boolean invited;
+    private String inviteToken;
+    private LocalDateTime tokenExpiresAt;
     private UserRepresentation userRepresentation;
     private String keycloakId;
     private String password;

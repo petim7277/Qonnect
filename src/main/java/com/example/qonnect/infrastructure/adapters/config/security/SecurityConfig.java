@@ -28,6 +28,7 @@ public class SecurityConfig {
                                 "/api/v1/organizations/organization",
                                 "/api/v1/users/user",
                                 "/api/v1/users/otp",
+                                "/api/v1/users/otp/resend",
                                 "/api/v1/users/password/reset/initiate",
                                 "/api/v1/users/password/reset/complete"
                         ).permitAll()
