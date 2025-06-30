@@ -5,11 +5,14 @@ import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.IdentityManagementException;
 import com.example.qonnect.domain.exceptions.OtpException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
+import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Otp;
 import com.example.qonnect.domain.models.OtpType;
 import com.example.qonnect.domain.models.Role;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.config.security.TokenBlacklistService;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
+import org.apache.http.auth.InvalidCredentialsException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,7 +22,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 
+import java.time.Instant;
 import java.util.stream.Stream;
 
 import static com.example.qonnect.domain.models.OtpType.VERIFICATION;
@@ -32,6 +38,9 @@ class UserServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private IdentityManagementOutputPort identityManagementOutputPort;
     @Mock private OtpService otpService;
+    @Mock private TokenBlacklistService tokenBlacklistService;
+    @Mock private  JwtDecoder jwtDecoder;
+    @Mock private Jwt jwt;
 
     @InjectMocks private UserService userService;
 
@@ -161,18 +170,19 @@ class UserServiceTest {
     void testCompleteResetSuccess() {
         String newPassword = "NewPassword@123";
         String otp = "123456";
+        String encoded = "ENCODED_HASH";
 
         when(userOutputPort.getUserByEmail(user.getEmail())).thenReturn(user);
         doNothing().when(otpService).validateOtp(user.getEmail(), otp);
         doNothing().when(identityManagementOutputPort).resetPassword(any(User.class));
+        when(passwordEncoder.encode(newPassword)).thenReturn(encoded);
 
         userService.completeReset(user.getEmail(), otp, newPassword);
 
-        assertEquals(newPassword, user.getPassword());
-        verify(userOutputPort).getUserByEmail(user.getEmail());
-        verify(otpService).validateOtp(user.getEmail(), otp);
-        verify(identityManagementOutputPort).resetPassword(user);
+        assertEquals(encoded, user.getPassword());
+        verify(passwordEncoder).encode(newPassword);
     }
+
 
     @Test
     void testCompleteResetFails_InvalidOtp() {
@@ -283,13 +293,29 @@ class UserServiceTest {
 
 
     @Test
-    void testLogout_CallsIdentityManagementOutputPort() {
-        String refreshToken = "sample-refresh-token";
+    void shouldLogoutAndBlacklistToken() {
 
-        userService.logout(user, refreshToken);
+        User user = new User();
+        user.setEmail("test@example.com");
 
+        String refreshToken = "dummyRefreshToken";
+        String accessToken = "dummyAccessToken";
+        String jti = "test-jti";
+        Instant now = Instant.now();
+        Instant expiry = now.plusSeconds(300);
+
+        when(jwtDecoder.decode(accessToken)).thenReturn(jwt);
+        when(jwt.getClaimAsString("jti")).thenReturn(jti);
+        when(jwt.getExpiresAt()).thenReturn(expiry);
+
+        userService.logout(user, refreshToken, accessToken);
+
+        // Then
         verify(identityManagementOutputPort).logout(user, refreshToken);
+        verify(jwtDecoder).decode(accessToken);
+        verify(tokenBlacklistService).blacklistToken(eq(jti), anyLong());
     }
+
 
     @Test
     void testResendOtp_Success() {
@@ -334,6 +360,67 @@ class UserServiceTest {
 
         assertEquals(ErrorMessages.EMPTY_EMAIL, ex.getMessage());
         verifyNoInteractions(userOutputPort);
+    }
+
+
+    @Test
+    void testLoginSuccess() throws Exception {
+        String rawPassword = "Password@123";
+        String encodedPassword = "encodedPass";
+
+        User storedUser = new User();
+        storedUser.setEmail("test@example.com");
+        storedUser.setPassword(encodedPassword);
+        storedUser.setEnabled(true);
+
+        User loginRequest = new User();
+        loginRequest.setEmail("test@example.com");
+        loginRequest.setPassword(rawPassword);
+
+        when(userOutputPort.getUserByEmail("test@example.com")).thenReturn(storedUser);
+        when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
+
+
+        User loggedIn = userService.login(loginRequest);
+
+        assertNotNull(loggedIn);
+        assertEquals("test@example.com", loggedIn.getEmail());
+        verify(passwordEncoder).matches(rawPassword, encodedPassword);
+        verify(identityManagementOutputPort).login(storedUser);
+    }
+
+
+    @Test
+    void testLoginFails_UserNotFound() {
+        User loginRequest = new User();
+        loginRequest.setEmail("nonexistent@example.com");
+        loginRequest.setPassword("Password@1");
+
+        when(userOutputPort.getUserByEmail("nonexistent@example.com")).thenReturn(null);
+
+        assertThrows(UserNotFoundException.class, () -> userService.login(loginRequest));
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(identityManagementOutputPort, never()).login(any());
+    }
+
+    @Test
+    void testLoginFails_InvalidPassword() {
+        String encodedPassword = "encodedCorrect1@";
+
+        User storedUser = new User();
+        storedUser.setEmail("admin@example.com");
+        storedUser.setPassword(encodedPassword);
+        storedUser.setEnabled(true);
+
+        User loginRequest = new User();
+        loginRequest.setEmail("admin@example.com");
+        loginRequest.setPassword("WrongPassword@1");
+
+        when(userOutputPort.getUserByEmail("admin@example.com")).thenReturn(storedUser);
+        when(passwordEncoder.matches("WrongPassword@1", encodedPassword)).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class, () -> userService.login(loginRequest));
+        verify(identityManagementOutputPort, never()).login(any());
     }
 
 

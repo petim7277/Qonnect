@@ -54,14 +54,15 @@ public class QonnectGlobalExceptionHandler {
     }
 
     @ExceptionHandler(IdentityManagementException.class)
-    public ResponseEntity<ErrorResponse> handleIdentityManagementException(IdentityManagementException identityManagementException) {
+    public ResponseEntity<ErrorResponse> handleIdentityManagementException(IdentityManagementException ex) {
         ErrorResponse error = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                identityManagementException.getMessage(),
+                ex.getStatus().value(),
+                ex.getMessage(),
                 Instant.now()
         );
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(error, ex.getStatus());
     }
+
 
     @ExceptionHandler(BugAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleBugAlreadyExists(BugAlreadyExistsException bugAlreadyExistsException) {

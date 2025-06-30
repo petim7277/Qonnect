@@ -23,6 +23,7 @@ public class User {
     private String tokenType;
     private boolean enabled;
     private String idToken;
+    private boolean verified;
     private String newPassword;
     private Organization organization;
     private String scope;

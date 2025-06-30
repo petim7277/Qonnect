@@ -72,7 +72,8 @@ public class OrganizationService implements RegisterOrganizationAdminUseCase, In
 
     @Override
     public void inviteUser(User inviter, String inviteeEmail, Role roleToAssign) {
-        if (inviter.getRole() != Role.ADMIN) {
+        User foundUser = userOutputPort.getUserByEmail(inviter.getEmail());
+        if (foundUser.getRole() != Role.ADMIN) {
             throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
         }
         validateEmail(inviteeEmail);
@@ -88,14 +89,14 @@ public class OrganizationService implements RegisterOrganizationAdminUseCase, In
         User invitee = new User();
         invitee.setEmail(inviteeEmail);
         invitee.setRole(roleToAssign);
-        invitee.setOrganization(inviter.getOrganization());
+        invitee.setOrganization(foundUser.getOrganization());
         invitee.setInviteToken(token);
         invitee.setTokenExpiresAt(expiry);
         invitee.setInvited(true);
         invitee.setEnabled(false);
 
         userOutputPort.saveUser(invitee);
-        sendInviteMail(invitee.getEmail(), token, inviter);
+        sendInviteMail(invitee.getEmail(), token, foundUser);
     }
 
 

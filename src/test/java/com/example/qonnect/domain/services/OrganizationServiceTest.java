@@ -129,18 +129,21 @@ class OrganizationServiceTest {
 
     @Test
     void shouldInviteUserSuccessfully() {
-
         User inviter = new User();
+        inviter.setEmail("admin@qonnect.com");
         inviter.setRole(Role.ADMIN);
         inviter.setOrganization(org);
 
         String inviteeEmail = "invitee@example.com";
 
-        when(userOutputPort.userExistsByEmail(inviteeEmail)).thenReturn(false);
+        when(userOutputPort.getUserByEmail(inviter.getEmail()))
+                .thenReturn(inviter);
+        when(userOutputPort.userExistsByEmail(inviteeEmail))
+                .thenReturn(false);
 
         registrationService.inviteUser(inviter, inviteeEmail, Role.QA_ENGINEER);
 
-        verify(userOutputPort, times(1)).saveUser(argThat(u ->
+        verify(userOutputPort).saveUser(argThat(u ->
                 inviteeEmail.equals(u.getEmail())
                         && u.getRole() == Role.QA_ENGINEER
                         && u.isInvited()
@@ -148,29 +151,40 @@ class OrganizationServiceTest {
                         && u.getOrganization() == org
                         && u.getInviteToken() != null
         ));
-
-        verify(emailOutputPort, times(1))
-                .sendEmail(eq(inviteeEmail), contains("You're Invited"), anyString());
+        verify(emailOutputPort).sendEmail(eq(inviteeEmail), contains("You're Invited"), anyString());
     }
 
     @Test
     void shouldThrowWhenInviterIsNotAdmin() {
         User inviter = new User();
+        inviter.setEmail("tester@qonnect.com");
         inviter.setRole(Role.QA_ENGINEER);
 
-        assertThrows(AccessDeniedException.class,
-                () -> registrationService.inviteUser(inviter, "new@qonnect.com", Role.QA_ENGINEER));
+        when(userOutputPort.getUserByEmail(inviter.getEmail()))
+                .thenReturn(inviter);
 
-        verifyNoInteractions(emailOutputPort, userOutputPort);
+        assertThrows(AccessDeniedException.class,
+                () -> registrationService.inviteUser(inviter,
+                        "new@qonnect.com",
+                        Role.QA_ENGINEER));
+
+        verify(userOutputPort).getUserByEmail(inviter.getEmail());
+        verifyNoMoreInteractions(userOutputPort);
+        verifyNoInteractions(emailOutputPort);
     }
+
 
     @Test
     void shouldThrowWhenInviteeAlreadyExists() {
         User inviter = new User();
+        inviter.setEmail("admin@qonnect.com");
         inviter.setRole(Role.ADMIN);
         inviter.setOrganization(org);
 
-        when(userOutputPort.userExistsByEmail("dup@qonnect.com")).thenReturn(true);
+        when(userOutputPort.getUserByEmail(inviter.getEmail()))
+                .thenReturn(inviter);
+        when(userOutputPort.userExistsByEmail("dup@qonnect.com"))
+                .thenReturn(true);
 
         assertThrows(UserAlreadyExistException.class,
                 () -> registrationService.inviteUser(inviter, "dup@qonnect.com", Role.QA_ENGINEER));
@@ -182,12 +196,17 @@ class OrganizationServiceTest {
     @MethodSource("invalidInputs")
     void shouldThrowWhenInviteeEmailIsInvalid(String invalidEmail) {
         User inviter = new User();
+        inviter.setEmail("admin@qonnect.com");
         inviter.setRole(Role.ADMIN);
         inviter.setOrganization(org);
 
-        assertThrows(IllegalArgumentException.class, () ->
-                registrationService.inviteUser(inviter, invalidEmail, Role.QA_ENGINEER));
+        when(userOutputPort.getUserByEmail(inviter.getEmail()))
+                .thenReturn(inviter);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> registrationService.inviteUser(inviter, invalidEmail, Role.QA_ENGINEER));
     }
+
 
 
     static Stream<String> invalidInputs() {
