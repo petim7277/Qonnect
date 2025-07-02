@@ -1,21 +1,24 @@
 package com.example.qonnect.domain.models;
 
+
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Bug {
+public class Task {
     private Long id;
     private String title;
     private String description;
-    private BugSeverity severity;
-    private BugStatus status;
-    private User reportedBy;
-    private Task task;
+    private TaskStatus status;
+    private User assignedTo;
+    private LocalDateTime dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Project project;
+    private List<Bug> bugs;
 }

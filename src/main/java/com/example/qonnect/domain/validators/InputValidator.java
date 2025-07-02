@@ -22,7 +22,7 @@ public class InputValidator {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException(ErrorMessages.emptyField(fieldName));
         }
-        if (name.length() < 2 || name.length() > 50) {
+        if (name.length() < 2 || name.length() > 256) {
             throw new IllegalArgumentException(ErrorMessages.invalidLength(fieldName));
         }
         if (!name.matches("^[A-Za-z\\s'-]+$")) {
