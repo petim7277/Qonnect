@@ -61,6 +61,11 @@ public class UserPersistenceAdapter implements UserOutputPort {
     }
 
     @Override
+    public boolean existById(Long id) {
+        return userRepository.existsById(id);
+    }
+
+    @Override
     public User getUserByInviteToken(String inviteToken) {
         log.info("Searching for user with inviteToken: {}", inviteToken);
 
