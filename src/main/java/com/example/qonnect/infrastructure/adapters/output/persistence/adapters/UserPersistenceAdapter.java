@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+import static com.example.qonnect.domain.validators.InputValidator.validateInput;
+
 @Slf4j
 @Component
 @AllArgsConstructor
@@ -33,5 +35,28 @@ public class UserPersistenceAdapter implements UserOutputPort {
             throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
         return userPersistenceMapper.toUser(foundUser.get());
+    }
+
+
+    @Override
+    public User saveUser(User user) {
+        log.info("Saving user: {}", user);
+
+        UserEntity entity = userPersistenceMapper.toUserEntity(user);
+        log.info("Mapped to entity: {}", entity);
+
+        entity = userRepository.save(entity);
+        log.info("Saved entity: {}", entity);
+
+        User savedUser = userPersistenceMapper.toUser(entity);
+        log.info("Mapped back to domain user: {}", savedUser);
+
+        return savedUser;
+    }
+
+    @Override
+    public boolean userExistsByEmail(String email) {
+        validateInput(email);
+        return userRepository.existsByEmail(email);
     }
 }

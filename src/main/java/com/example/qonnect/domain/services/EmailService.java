@@ -1,5 +1,6 @@
 package com.example.qonnect.domain.services;
 
+import com.example.qonnect.application.output.EmailOutputPort;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -12,11 +13,10 @@ import org.springframework.stereotype.Service;
 @Setter
 @Getter
 @RequiredArgsConstructor
-public class EmailService {
+public class EmailService implements EmailOutputPort {
 
 
     private final JavaMailSender mailSender;
-
 
 
     public void sendEmail(String to, String subject, String body) {

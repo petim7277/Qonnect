@@ -18,7 +18,7 @@ public class KeycloakConfig {
     @Value("${KEYCLOAK_REALM}")
     private String realm;
 
-    @Value("${KEYCLOAK_SERVER_URL}")
+    @Value("${keycloak.server-url}")
     private String serverUrl;
 
     @Value("${CLIENT_SECRET}")
