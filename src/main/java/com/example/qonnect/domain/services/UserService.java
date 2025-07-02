@@ -19,9 +19,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 import static com.example.qonnect.domain.models.User.validateUserDetails;
 import static com.example.qonnect.domain.validators.InputValidator.*;
@@ -29,7 +31,7 @@ import static com.example.qonnect.domain.validators.InputValidator.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase, ChangePasswordUseCase, LogoutUseCase, ResendOtpUseCases, ViewUserProfileUseCase, LoginUseCase{
+public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase, ChangePasswordUseCase, LogoutUseCase, ResendOtpUseCases, ViewUserProfileUseCase, LoginUseCase,AcceptInviteUseCase{
 
     private final UserOutputPort userOutputPort;
     private final PasswordEncoder passwordEncoder;
@@ -195,6 +197,35 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswo
     public User viewUserProfile(String email) {
         validateEmail(email);
         return userOutputPort.getUserByEmail(email);
+    }
+
+
+    @Override
+    public void completeInvitation(String inviteToken, String firstName, String lastName, String password) {
+        User user = userOutputPort.getUserByInviteToken(inviteToken);
+
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setPassword(password);
+
+        userOutputPort.saveUser(user);
+
+        otpService.createOtp(user.getFirstName(), user.getEmail(), OtpType.VERIFICATION);
+    }
+
+
+    @Override
+    public void verifyOtpAndActivate(String inviteToken, String otp) {
+        User user = userOutputPort.getUserByInviteToken(inviteToken);
+
+        otpService.validateOtp(user.getEmail(), otp);
+
+        identityManagementOutputPort.createUser(user);
+//        identityManagementOutputPort.activateUser(user);
+
+        user.setEnabled(true);
+        user.setInvited(false);
+        userOutputPort.saveUser(user);
     }
 
 }

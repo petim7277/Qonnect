@@ -424,6 +424,45 @@ class UserServiceTest {
     }
 
 
+    @Test
+    void testCompleteInvitation_populatesUserAndSendsOtp() {
+        String token = "TOKEN123";
+        when(userOutputPort.getUserByInviteToken(token)).thenReturn(user);
+        when(userOutputPort.saveUser(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        userService.completeInvitation(token, "Praise", "Tester", "SecurePass123!");
+
+        assertEquals("Praise", user.getFirstName());
+        assertEquals("Tester", user.getLastName());
+        assertEquals("SecurePass123!", user.getPassword());
+
+        verify(userOutputPort).saveUser(user);
+        verify(otpService).createOtp("Praise", user.getEmail(), OtpType.VERIFICATION);
+    }
+
+    @Test
+    void testVerifyOtpAndActivate_successfullyActivatesUser() {
+        String token = "TOKEN123";
+        String otp = "123456";
+
+        when(userOutputPort.getUserByInviteToken(token)).thenReturn(user);
+        doNothing().when(otpService).validateOtp(user.getEmail(), otp);
+        when(userOutputPort.saveUser(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        userService.verifyOtpAndActivate(token, otp);
+
+        assertTrue(user.isEnabled());
+        assertFalse(user.isInvited());
+
+        verify(identityManagementOutputPort).createUser(user);
+        verify(userOutputPort).saveUser(user);
+    }
+
+
+
+
+
+
 
     private Role safeParseRole(String input) {
         try {

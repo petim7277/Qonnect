@@ -24,6 +24,6 @@ public interface IdentityManagementOutputPort {
     void logout(User user, String token);
 
 
-
+    void activateUser(User user);
 
 }
