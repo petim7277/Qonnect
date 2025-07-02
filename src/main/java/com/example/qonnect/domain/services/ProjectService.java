@@ -61,8 +61,11 @@ public class ProjectService implements ProjectUseCase {
     }
 
     @Override
-    public Page<Project> getAllProjects(Pageable pageable) {
-        return null;
+    public Page<Project> getAllProjects(Long organizationId,Pageable pageable) {
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization ID is required");
+        }
+        return projectOutputPort.getAllProjects(organizationId,pageable);
     }
 
 }

@@ -11,6 +11,8 @@ import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.Pr
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,7 +21,6 @@ import org.springframework.stereotype.Service;
 public class ProjectPersistenceAdapter implements ProjectOutputPort {
 
     private final ProjectPersistenceMapper projectPersistenceMapper;
-    private final OrganizationPersistenceMapper organizationPersistenceMapper;
     private final ProjectRepository projectRepository;
 
 
@@ -47,6 +48,19 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
     @Override
     public boolean existsByNameAndOrganizationId(String name, Long organizationId) {
         return projectRepository.existsProjectNameInOrganization(name, organizationId);
+    }
+
+    @Override
+    public Page<Project> getAllProjects(Long organizationId, Pageable pageable) {
+        log.info("Retrieving projects for organization ID: {} with pagination: {}", organizationId, pageable);
+
+        Page<ProjectEntity> projectEntities = projectRepository.findByOrganizationId(organizationId, pageable);
+        log.info("Found {} projects for organization ID: {}", projectEntities.getTotalElements(), organizationId);
+
+        Page<Project> projects = projectEntities.map(projectPersistenceMapper::toProject);
+        log.info("Mapped {} project entities to domain objects", projects.getNumberOfElements());
+
+        return projects;
     }
 
 }

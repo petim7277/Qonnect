@@ -9,5 +9,5 @@ public interface ProjectUseCase {
 
     Project createProject(User user, Project project);
 
-    Page<Project> getAllProjects(Pageable pageable);
+    Page<Project> getAllProjects(Long organizationId,Pageable pageable);
 }
