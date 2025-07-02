@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 import static com.example.qonnect.domain.validators.InputValidator.validateName;
 
 @Service
@@ -29,22 +31,31 @@ public class ProjectService implements ProjectUseCase {
     @Override
     public Project createProject(User user, Project project) {
 
-        if(!userOutputPort.existById(user.getId())){
+        if (!userOutputPort.existById(user.getId())) {
             throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        if (!(user.getRole().equals(Role.ADMIN))){
+        if (!Role.ADMIN.equals(user.getRole())) {
             throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
         }
+        log.info("Here is the user organization id " + user.getOrganization());
 
         validateName(project.getName(), "project name");
         validateName(project.getDescription(), "project description");
 
-        if(projectOutputPort.existById(project.getId())){
+        if (projectOutputPort.existsByNameAndOrganizationId(project.getName(), user.getOrganization().getId())) {
             throw new ProjectAlreadyExistException(ErrorMessages.PROJECT_EXIST_ALREADY, HttpStatus.CONFLICT);
         }
+
         project.setCreatedBy(user);
+        log.info("Here is the user organization id before setting  " + project.getOrganization() + user.getOrganization().getName());
+
+        project.setOrganization(user.getOrganization());
+        log.info("Here is the user organization id after setting  " + project.getOrganization() + user.getOrganization().getName());
+
+        project.setCreatedAt(LocalDateTime.now());
 
         return projectOutputPort.saveProject(project);
     }
+
 }

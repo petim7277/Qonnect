@@ -1,10 +1,12 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
 import com.example.qonnect.application.output.ProjectOutputPort;
+import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.ProjectEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.UserEntity;
+import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.OrganizationPersistenceMapper;
 import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.ProjectPersistenceMapper;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.ProjectRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class ProjectPersistenceAdapter implements ProjectOutputPort {
 
     private final ProjectPersistenceMapper projectPersistenceMapper;
+    private final OrganizationPersistenceMapper organizationPersistenceMapper;
     private final ProjectRepository projectRepository;
 
 
@@ -40,4 +43,10 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
     public boolean existById(Long id) {
         return projectRepository.existsById(id);
     }
+
+    @Override
+    public boolean existsByNameAndOrganizationId(String name, Long organizationId) {
+        return projectRepository.existsProjectNameInOrganization(name, organizationId);
+    }
+
 }

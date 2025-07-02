@@ -8,4 +8,7 @@ public interface ProjectOutputPort {
 
     boolean existById(Long id);
 
+    boolean existsByNameAndOrganizationId(String name, Long organizationId);
+
+
 }

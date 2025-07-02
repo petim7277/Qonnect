@@ -84,6 +84,16 @@ public class QonnectGlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ProjectAlreadyExistException.class)
+    public ResponseEntity<ErrorResponse> handleProjectAlreadyExist(ProjectAlreadyExistException projectAlreadyExistException) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                projectAlreadyExistException.getMessage(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException accessDeniedException) {
         ErrorResponse error = new ErrorResponse(

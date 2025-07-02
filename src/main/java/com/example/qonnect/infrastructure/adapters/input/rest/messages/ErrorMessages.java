@@ -27,7 +27,6 @@ public class ErrorMessages {
     public static final String PROJECT_EXIST_ALREADY = "Project already exist";
     public static final String ORGANIZATION_NOT_FOUND = "Organization not found";
     public static final String ORGANIZATION_ALREADY_EXISTS = "Organization already exists";
-    public static final String ACCESS_DENIED = "Only admins can invite users.";
     public static final String USER_NOT_ENABLED = "User is not enabled";
 
 
