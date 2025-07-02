@@ -366,4 +366,24 @@ public class KeycloakAdapter implements IdentityManagementOutputPort {
         }
     }
 
+    @Override
+    public void activateUser(User user) {
+        UserRepresentation userRep = findUserByUsername(user.getEmail());
+        userRep.setEnabled(true);
+
+        UserResource userResource = keycloak.realm(realm)
+                .users()
+                .get(userRep.getId());
+
+        userResource.update(userRep);
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setTemporary(false);
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(user.getPassword());
+
+        userResource.resetPassword(credential);
+    }
+
+
 }

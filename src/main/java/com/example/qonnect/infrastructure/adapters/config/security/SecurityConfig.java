@@ -31,6 +31,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api/v1/organizations/organization",
                                 "/api/v1/users/user",
+                                "/api/v1/users/complete-invitation",
+                                "/api/v1/users/verify-invitation",
                                 "/api/v1/users/login",
                                 "/api/v1/users/otp",
                                 "/api/v1/users/otp/resend",

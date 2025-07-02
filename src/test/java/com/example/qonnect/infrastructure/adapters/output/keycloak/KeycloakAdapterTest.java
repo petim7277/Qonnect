@@ -2,6 +2,9 @@ package com.example.qonnect.infrastructure.adapters.output.keycloak;
 
 import static com.example.qonnect.domain.models.Role.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 import com.example.qonnect.application.output.IdentityManagementOutputPort;
 import com.example.qonnect.domain.exceptions.AuthenticationException;
@@ -9,8 +12,19 @@ import com.example.qonnect.domain.exceptions.IdentityManagementException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.User;
-import org.junit.jupiter.api.*;
+//import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.UserResource;
+import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.ArrayList;
@@ -26,6 +40,14 @@ class KeycloakAdapterTest {
     private User testUser;
 
     private final List<String> createdEmails = new ArrayList<>();
+    @Autowired
+    private Keycloak keycloak;
+
+    @Value("${keycloak.realm}")
+    private String realm;
+
+
+
 
     @BeforeEach
     void setUp() {
@@ -224,5 +246,45 @@ class KeycloakAdapterTest {
 
 
     }
+
+    @Test
+    void testActivateUser_enablesUserAndSetsPassword() throws Exception {
+
+        User user = new User();
+        user.setEmail("invitee@example.com");
+        user.setPassword("NewStrongPass123!");
+
+        Keycloak mockKeycloak          = mock(Keycloak.class);
+        RealmResource mockRealm        = mock(RealmResource.class);
+        UsersResource mockUsers        = mock(UsersResource.class);
+        UserResource  mockUserResource = mock(UserResource.class);
+
+        String kcUserId = "abc‑123‑kc‑id";
+        UserRepresentation kcUserRep = new UserRepresentation();
+        kcUserRep.setId(kcUserId);
+        kcUserRep.setEmail(user.getEmail());
+
+        when(mockKeycloak.realm(anyString())).thenReturn(mockRealm);
+        when(mockRealm.users()).thenReturn(mockUsers);
+        when(mockUsers.search(eq(user.getEmail()))).thenReturn(List.of(kcUserRep));
+        when(mockUsers.get(kcUserId)).thenReturn(mockUserResource);
+
+        doNothing().when(mockUserResource).update(any(UserRepresentation.class));
+        doNothing().when(mockUserResource).resetPassword(any(CredentialRepresentation.class));
+
+        KeycloakAdapter adapter = (KeycloakAdapter) identityPort;
+        org.springframework.test.util.ReflectionTestUtils
+                .setField(adapter, "keycloak", mockKeycloak);
+
+        adapter.activateUser(user);
+
+        verify(mockUsers).get(kcUserId);
+        verify(mockUserResource).update(kcUserRep);
+        verify(mockUserResource).resetPassword(any(CredentialRepresentation.class));
+    }
+
+
+
+
 
 }

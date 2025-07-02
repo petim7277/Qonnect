@@ -10,4 +10,6 @@ public interface UserOutputPort {
 
     boolean userExistsByEmail(String email);
 
+    User getUserByInviteToken(String inviteToken);
+
 }

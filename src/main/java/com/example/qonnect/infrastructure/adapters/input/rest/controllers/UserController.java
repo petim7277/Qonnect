@@ -44,7 +44,7 @@ public class UserController {
     private final ResendOtpUseCases resendOtpUseCases;
     private final ViewUserProfileUseCase viewUserProfileUseCase;
     private final LoginUseCase loginUseCase;
-
+    private final AcceptInviteUseCase acceptInviteUseCase;
 
     @Operation(summary = "Register a new user", description = "Creates a new user account")
     @ApiResponses({
@@ -229,6 +229,20 @@ public class UserController {
         User profile = viewUserProfileUseCase.viewUserProfile(user.getEmail());
         return ResponseEntity.ok(userRestMapper.toUserProfileResponse(profile));
     }
+
+    @PostMapping("/complete-invitation")
+    public ResponseEntity<?> completeInvitation(@RequestParam String token,
+                                                @RequestBody @Valid CompleteInviteRequest request) {
+        acceptInviteUseCase.completeInvitation(token, request.getFirstName(),request.getLastName(),request.getPassword());
+        return ResponseEntity.ok(new CompleteInviteResponse("Invitation details completed. Please verify OTP sent to your email."));
+    }
+
+    @PostMapping("/verify-invitation")
+    public ResponseEntity<?> verifyInvitation(@RequestBody @Valid VerifyInviteOtpRequest request) {
+        acceptInviteUseCase.verifyOtpAndActivate(request.getEmail(), request.getOtp());
+        return ResponseEntity.ok(new VerifyInviteResponse("Account verified and activated successfully."));
+    }
+
 
 
 
