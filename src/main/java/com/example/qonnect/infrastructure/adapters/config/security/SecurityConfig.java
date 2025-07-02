@@ -25,8 +25,11 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
+                                "/api/v1/organizations/organization",
                                 "/api/v1/users/user",
-                                "/api/v1/users/otp"
+                                "/api/v1/users/otp",
+                                "/api/v1/users/password/reset/initiate",
+                                "/api/v1/users/password/reset/complete"
                         ).permitAll()
                         .anyRequest().authenticated())
                         .oauth2ResourceServer(oauth2 -> oauth2

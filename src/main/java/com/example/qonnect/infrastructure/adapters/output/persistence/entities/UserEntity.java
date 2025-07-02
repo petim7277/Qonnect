@@ -25,6 +25,11 @@ public class UserEntity {
 
     private String password;
 
+    @ManyToOne
+    @JoinColumn(name = "organization_id")
+    private OrganizationEntity organization;
+
+
     private String keycloakId;
 
     @Enumerated(EnumType.STRING)

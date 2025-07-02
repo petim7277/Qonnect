@@ -1,7 +1,6 @@
 package com.example.qonnect.domain.services;
 
-import com.example.qonnect.application.input.SignUpUseCase;
-import com.example.qonnect.application.input.VerifyOtpUseCase;
+import com.example.qonnect.application.input.*;
 import com.example.qonnect.application.output.IdentityManagementOutputPort;
 import com.example.qonnect.application.output.OtpOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
@@ -16,17 +15,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import static com.example.qonnect.domain.models.User.validateUserDetails;
 import static com.example.qonnect.domain.validators.InputValidator.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserService implements SignUpUseCase, VerifyOtpUseCase {
+public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswordUseCase, ChangePasswordUseCase, LogoutUseCase, ResendOtpUseCases, ViewUserProfileUseCase{
 
     private final UserOutputPort userOutputPort;
-
     private final PasswordEncoder passwordEncoder;
-
     private final IdentityManagementOutputPort identityManagementOutputPort;
     private final OtpService otpService;
 
@@ -34,12 +32,7 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase {
 
     @Override
     public User signUp(User user) throws UserAlreadyExistException, IdentityManagementException {
-        validateEmail(user.getEmail());
-        validateName(user.getFirstName(), "First name");
-        validateName(user.getLastName(), "Last name");
-        validatePassword(user.getPassword());
-        validateRole(user.getRole().name());
-
+        validateUserDetails(user);
         if (userOutputPort.userExistsByEmail(user.getEmail())) {
             throw new UserAlreadyExistException(ErrorMessages.USER_EXISTS_ALREADY, HttpStatus.CONFLICT);
         }
@@ -72,6 +65,73 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase {
         userOutputPort.saveUser(user);
 
         log.info("OTP verified and user enabled: {}", user.getEmail());
+    }
+
+    @Override
+    public void initiateReset(String email) {
+        validateEmail(email);
+        User user = userOutputPort.getUserByEmail(email);
+
+        otpService.createOtp(user.getFirstName(), user.getEmail(), OtpType.RESET_PASSWORD);
+        log.info("Reset password OTP sent to: {}", email);
+    }
+
+    @Override
+    public void completeReset(String email, String otp, String newPassword) {
+        validateEmail(email);
+        validatePassword(newPassword);
+        validateInput(otp);
+
+        User user = userOutputPort.getUserByEmail(email);
+        otpService.validateOtp(user.getEmail(), otp);
+
+        user.setPassword(newPassword);
+        identityManagementOutputPort.resetPassword(user);
+        log.info("Password reset successful for user: {}", email);
+    }
+
+    @Override
+    public void changePassword(String email, String oldPassword, String newPassword) {
+        validateEmail(email);
+        validatePassword(oldPassword);
+        validatePassword(newPassword);
+
+        User user = userOutputPort.getUserByEmail(email);
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new IdentityManagementException(ErrorMessages.INCORRECT_OLD_PASSWORD, HttpStatus.UNAUTHORIZED);
+        }
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IdentityManagementException(ErrorMessages.NEW_PASSWORD_SAME_AS_OLD, HttpStatus.BAD_REQUEST);
+        }
+
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        user.setNewPassword(encodedNewPassword);
+        user.setPassword(encodedNewPassword);
+
+        identityManagementOutputPort.changePassword(user);
+
+        userOutputPort.saveUser(user);
+    }
+
+
+    @Override
+    public void logout(User user, String refreshToken) {
+        identityManagementOutputPort.logout(user,refreshToken);
+    }
+
+
+    @Override
+    public void resendOtp(String email, OtpType otpType) {
+        validateEmail(email);
+        User foundUser = userOutputPort.getUserByEmail(email);
+        otpService.resendOtp(foundUser.getFirstName(), foundUser.getEmail(), otpType);
+    }
+
+    @Override
+    public User viewUserProfile(String email) {
+        validateEmail(email);
+        return userOutputPort.getUserByEmail(email);
     }
 
 }

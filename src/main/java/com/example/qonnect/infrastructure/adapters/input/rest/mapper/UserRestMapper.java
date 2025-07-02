@@ -3,6 +3,7 @@ package com.example.qonnect.infrastructure.adapters.input.rest.mapper;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.RegisterUserRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.RegisterUserResponse;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.UserProfileResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -17,5 +18,7 @@ public interface UserRestMapper {
 
     RegisterUserResponse toCreateUserResponse(User user);
 
+
+    UserProfileResponse toUserProfileResponse(User profile);
 
 }
