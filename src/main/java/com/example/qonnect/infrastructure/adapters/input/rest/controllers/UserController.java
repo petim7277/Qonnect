@@ -1,10 +1,7 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 
 import com.example.qonnect.application.input.*;
-import com.example.qonnect.domain.exceptions.IdentityManagementException;
-import com.example.qonnect.domain.exceptions.OtpException;
-import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
-import com.example.qonnect.domain.exceptions.UserNotFoundException;
+import com.example.qonnect.domain.exceptions.*;
 import com.example.qonnect.domain.models.Role;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.*;
@@ -21,6 +18,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.auth.InvalidCredentialsException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -44,6 +43,7 @@ public class UserController {
     private final LogoutUseCase logoutUseCase;
     private final ResendOtpUseCases resendOtpUseCases;
     private final ViewUserProfileUseCase viewUserProfileUseCase;
+    private final LoginUseCase loginUseCase;
 
 
     @Operation(summary = "Register a new user", description = "Creates a new user account")
@@ -96,6 +96,32 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+
+    @Operation(summary = "User login", description = "Authenticates a user and returns a JWT token")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User authenticated successfully", content = @Content(schema = @Schema(implementation = LoginUserResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+    })
+    @PostMapping("/login")
+    public ResponseEntity<LoginUserResponse> login(
+            @RequestBody @Valid @Parameter(description = "User login credentials") LoginUserRequest loginUserRequest)
+            throws UserNotFoundException, InvalidCredentialsException, AuthenticationException {
+
+        log.info("Login request received for email: {}", loginUserRequest.getEmail());
+
+        User user = userRestMapper.toUser(loginUserRequest);
+        User authenticatedUser = loginUseCase.login(user);
+        LoginUserResponse response = userRestMapper.toLoginResponse(authenticatedUser);
+
+        log.info("Successful login for email: {}", authenticatedUser.getEmail());
+
+        return ResponseEntity.ok(response);
+    }
+
+
+
     @Operation(summary = "Initiate password reset", description = "Sends an OTP to the user's email for password reset")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OTP sent to email"),
@@ -140,7 +166,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     @SecurityRequirement(name = "Keycloak")
-    @PostMapping("/password/change")
+    @PutMapping("/password/change")
     public ResponseEntity<ChangePasswordResponse> changePassword(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody ChangePasswordRequest request
@@ -163,14 +189,18 @@ public class UserController {
     @PostMapping("/logout")
     public ResponseEntity<LogoutResponse> logout(
             @AuthenticationPrincipal User user,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @Valid @RequestBody LogoutRequest request
     ) {
-        logoutUseCase.logout(user, request.getRefreshToken());
+        String accessToken = authorizationHeader.replace("Bearer ", "");
+
+        logoutUseCase.logout(user, request.getRefreshToken(), accessToken);
 
         return ResponseEntity.ok(
                 new LogoutResponse("Logout successful", LocalDateTime.now())
         );
     }
+
 
 
     @Operation(summary = "Resend OTP", description = "Resends OTP for verification or password reset")
