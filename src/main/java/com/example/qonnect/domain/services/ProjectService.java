@@ -56,6 +56,7 @@ public class ProjectService implements ProjectUseCase {
         log.info("Here is the user organization id after setting  " + project.getOrganization() + user.getOrganization().getName());
 
         project.setCreatedAt(LocalDateTime.now());
+        project.setUpdatedAt(LocalDateTime.now());
 
         return projectOutputPort.saveProject(project);
     }

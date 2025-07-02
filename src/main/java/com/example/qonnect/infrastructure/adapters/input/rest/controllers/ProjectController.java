@@ -47,11 +47,11 @@ public class ProjectController {
     }
 
 
-    @GetMapping
+    @GetMapping()
     public ResponseEntity<Page<ProjectResponse>> getAllProjects(
             @AuthenticationPrincipal User user,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0",name = "page") int page,
+            @RequestParam(defaultValue = "10",name = "size") int size
             ) {
 
 
@@ -66,10 +66,9 @@ public class ProjectController {
 //                ? Sort.by(sortBy).descending()
 //                : Sort.by(sortBy).ascending();
 
-        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC);
-
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Project> projects = projectUseCase.getAllProjects(user.getOrganization().getId(), pageable);
-
-        return ResponseEntity.ok(projectRestMapper.toProjectResponses(projects));
+        Page<ProjectResponse> responses = projects.map(projectRestMapper::toProjectResponse);
+        return ResponseEntity.ok(responses);
     }
 }

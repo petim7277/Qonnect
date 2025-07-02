@@ -26,16 +26,20 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
 
     @Override
     public Project saveProject(Project project) {
-        log.info("Saving project: {}", project);
+        log.info("Domain project before mapping - createdAt: {}, updatedAt: {}",
+                project.getCreatedAt(), project.getUpdatedAt());
 
         ProjectEntity entity = projectPersistenceMapper.toProjectEntity(project);
-        log.info("Mapped to entity: {}", entity);
+        log.info("Entity after mapping - createdAt: {}, updatedAt: {}",
+                entity.getCreatedAt(), entity.getUpdatedAt());
 
         entity = projectRepository.save(entity);
-        log.info("Saved entity: {}", entity);
+        log.info("Entity after save - createdAt: {}, updatedAt: {}",
+                entity.getCreatedAt(), entity.getUpdatedAt());
 
         Project savedProject = projectPersistenceMapper.toProject(entity);
-        log.info("Mapped back to domain project: {}", savedProject);
+        log.info("Domain project after mapping back - createdAt: {}, updatedAt: {}",
+                savedProject.getCreatedAt(), savedProject.getUpdatedAt());
 
         return savedProject;
     }

@@ -6,15 +6,17 @@ import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.Pro
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectResponse;
 import jakarta.validation.Valid;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.data.domain.Page;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring")
 public interface ProjectRestMapper {
+
 
     Project toDomain(@Valid CreateProjectRequest request);
 
     ProjectCreationResponse toResponse(Project created);
 
-    Page<ProjectResponse> toProjectResponses(Page<Project> projects);
+    ProjectResponse toProjectResponse(Project project);
 }

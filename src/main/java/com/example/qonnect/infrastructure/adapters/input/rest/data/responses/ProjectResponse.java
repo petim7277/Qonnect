@@ -4,6 +4,8 @@ import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.User;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 
 @Builder
 @Setter
@@ -16,5 +18,6 @@ public class ProjectResponse {
     private String name;
     private String description;
     private User createdBy;
+    private LocalDateTime createdAt;
 
 }
