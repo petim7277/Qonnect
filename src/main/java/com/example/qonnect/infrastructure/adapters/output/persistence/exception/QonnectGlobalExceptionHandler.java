@@ -103,6 +103,7 @@ public class QonnectGlobalExceptionHandler {
         );
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
+
   @ExceptionHandler(OtpException.class)
     public ResponseEntity<ErrorResponse> handleOtpException(OtpException otpException) {
         ErrorResponse error = new ErrorResponse(
