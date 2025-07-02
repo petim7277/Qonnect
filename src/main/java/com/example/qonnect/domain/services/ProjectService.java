@@ -6,6 +6,7 @@ import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Project;
+import com.example.qonnect.domain.models.Role;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import static com.example.qonnect.domain.models.Role.ORGANIZATION;
 import static com.example.qonnect.domain.validators.InputValidator.validateName;
 
 @Service
@@ -33,7 +33,7 @@ public class ProjectService implements ProjectUseCase {
             throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        if (!(user.getRole().equals(ORGANIZATION))){
+        if (!(user.getRole().equals(Role.ADMIN))){
             throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
         }
 

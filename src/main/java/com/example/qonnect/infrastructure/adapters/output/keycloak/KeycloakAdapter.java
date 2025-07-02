@@ -15,9 +15,11 @@ import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -47,6 +49,9 @@ public class KeycloakAdapter implements IdentityManagementOutputPort {
 
     @Value("${keycloak.client-id}")
     private String clientId;
+
+    @Value("${keycloak.server-url}")
+    private String serverUrl;
 
     @Value("${app.keycloak.tokenUrl}")
     private String tokenUrl;
@@ -237,40 +242,77 @@ public class KeycloakAdapter implements IdentityManagementOutputPort {
         user.setUserRepresentation(userRepresentation);
         return Optional.of(user);
     }
-    @Override
-    public void changePassword(User user) throws IdentityManagementException {
-        try {
-            if (!confirmValidLoginDetails(user)) {
-                throw new IdentityManagementException(ErrorMessages.INVALID_REQUEST, HttpStatus.BAD_REQUEST);
-            }
-            User foundUser = getUserByEmail(user.getEmail())
-                    .orElseThrow(() -> new IdentityManagementException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
-            CredentialRepresentation credential = new CredentialRepresentation();
-            credential.setTemporary(false);
-            credential.setType(CredentialRepresentation.PASSWORD);
-            credential.setValue(user.getNewPassword());
 
-            UserResource userResource = getUserResourceById(foundUser.getKeycloakId());
-            userResource.resetPassword(credential);
-
-        } catch (IdentityManagementException e) {
-            throw new IdentityManagementException(e.getMessage(), e.getStatus());
+    public void changePassword(User userIdentity) {
+        if (!confirmValidLoginDetails(userIdentity)) {
+            throw new IdentityManagementException("Invalid current password", HttpStatus.BAD_REQUEST);
         }
+
+        Keycloak keycloak = getKeycloakAdmin();
+
+        UserRepresentation user = keycloak.realm(realm)
+                .users()
+                .search(userIdentity.getEmail())
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IdentityManagementException("User not found", HttpStatus.NOT_FOUND));
+
+        CredentialRepresentation newCred = new CredentialRepresentation();
+        newCred.setTemporary(false);
+        newCred.setType(CredentialRepresentation.PASSWORD);
+        newCred.setValue(userIdentity.getNewPassword());
+
+        keycloak.realm(realm).users().get(user.getId()).resetPassword(newCred);
     }
 
-    private boolean confirmValidLoginDetails(User user) {
-        try {
-            User loginAttempt = new User();
-            loginAttempt.setEmail(user.getEmail());
-            loginAttempt.setPassword(user.getPassword());
 
-            User loggedIn = login(loginAttempt);
-            return loggedIn != null && loggedIn.getAccessToken() != null;
-        } catch (AuthenticationException e) {
+    public boolean confirmValidLoginDetails(User user) {
+        try {
+
+            Keycloak keycloak = KeycloakBuilder.builder()
+                    .serverUrl(serverUrl)
+                    .realm(realm)
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .username(user.getEmail())
+                    .password(user.getPassword())
+                    .grantType("password")
+                    .build();
+
+            AccessTokenResponse token = keycloak.tokenManager().getAccessToken();
+            return token != null && !token.getToken().isEmpty();
+
+        } catch (Exception e) {
             return false;
         }
     }
+
+
+    private Keycloak getKeycloakAdmin() {
+        return KeycloakBuilder.builder()
+                .serverUrl(serverUrl)
+                .realm(realm)
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .grantType("client_credentials")
+                .build();
+    }
+
+//    private Keycloak getKeycloakWithUserCredentials(User userIdentity) {
+//        return KeycloakBuilder.builder()
+//                .serverUrl(serverUrl)
+//                .realm(realm)
+//                .clientId(clientId)
+//                .clientSecret(clientSecret)
+//                .grantType("password")
+//                .username(userIdentity.getEmail())
+//                .password(userIdentity.getPassword())
+//                .build();
+//    }
+
+
+
 
 
 
@@ -323,5 +365,25 @@ public class KeycloakAdapter implements IdentityManagementOutputPort {
                     user.getEmail(), e.getStatusCode(), e.getResponseBodyAsString());
         }
     }
+
+    @Override
+    public void activateUser(User user) {
+        UserRepresentation userRep = findUserByUsername(user.getEmail());
+        userRep.setEnabled(true);
+
+        UserResource userResource = keycloak.realm(realm)
+                .users()
+                .get(userRep.getId());
+
+        userResource.update(userRep);
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setTemporary(false);
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(user.getPassword());
+
+        userResource.resetPassword(credential);
+    }
+
 
 }

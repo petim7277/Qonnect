@@ -12,4 +12,6 @@ public interface UserOutputPort {
 
     boolean existById(Long id);
 
+    User getUserByInviteToken(String inviteToken);
+
 }

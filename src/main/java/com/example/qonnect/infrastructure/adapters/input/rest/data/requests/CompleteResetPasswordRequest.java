@@ -7,8 +7,7 @@ import lombok.Data;
 @Data
 public class CompleteResetPasswordRequest {
 
-    @NotBlank(message = "Email must not be blank")
-    private String email;
+
 
     @NotBlank(message = "OTP must not be blank")
     private String otp;

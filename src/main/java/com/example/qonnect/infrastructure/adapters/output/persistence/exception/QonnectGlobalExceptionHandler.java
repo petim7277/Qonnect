@@ -33,6 +33,16 @@ public class QonnectGlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(OrganizationAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleOrganizationAlreadyExistArgument(OrganizationAlreadyExistsException organizationAlreadyExistsException) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                organizationAlreadyExistsException.getMessage(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException authenticationException) {
         ErrorResponse error = new ErrorResponse(
@@ -44,14 +54,15 @@ public class QonnectGlobalExceptionHandler {
     }
 
     @ExceptionHandler(IdentityManagementException.class)
-    public ResponseEntity<ErrorResponse> handleIdentityManagementException(IdentityManagementException identityManagementException) {
+    public ResponseEntity<ErrorResponse> handleIdentityManagementException(IdentityManagementException ex) {
         ErrorResponse error = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                identityManagementException.getMessage(),
+                ex.getStatus().value(),
+                ex.getMessage(),
                 Instant.now()
         );
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(error, ex.getStatus());
     }
+
 
     @ExceptionHandler(BugAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleBugAlreadyExists(BugAlreadyExistsException bugAlreadyExistsException) {

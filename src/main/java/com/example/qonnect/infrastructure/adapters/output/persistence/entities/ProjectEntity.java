@@ -23,12 +23,18 @@ public class ProjectEntity {
     @JoinColumn(name = "created_by")
     private UserEntity createdBy;
 
+
     @ManyToMany
     @JoinTable(
             name = "project_users",
             joinColumns = @JoinColumn(name = "project_id")
     )
     private List<UserEntity> teamMembers;
+
+    @ManyToOne
+    @JoinColumn(name = "organization_id")
+    private OrganizationEntity organization;
+
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<BugEntity> bugs;

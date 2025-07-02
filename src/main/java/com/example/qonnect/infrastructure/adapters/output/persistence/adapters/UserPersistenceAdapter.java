@@ -64,4 +64,19 @@ public class UserPersistenceAdapter implements UserOutputPort {
     public boolean existById(Long id) {
         return userRepository.existsById(id);
     }
+
+    @Override
+    public User getUserByInviteToken(String inviteToken) {
+        log.info("Searching for user with inviteToken: {}", inviteToken);
+
+        Optional<UserEntity> entity = userRepository.findByInviteToken(inviteToken);
+
+        if (entity.isEmpty()) {
+            log.warn("No user found with inviteToken: {}", inviteToken);
+            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+
+        return userPersistenceMapper.toUser(entity.get());
+    }
+
 }
