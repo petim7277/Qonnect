@@ -188,7 +188,11 @@
             <artifactId>spring-boot-starter-mail</artifactId>
             <version>3.3.4</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
 
     </dependencies>
