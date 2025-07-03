@@ -28,7 +28,7 @@ public class JwtBlacklistFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        log.info("✅ JwtBlacklistFilter HIT");
+        log.info("==>JwtBlacklistFilter HIT");
 
         String authHeader = request.getHeader("Authorization");
 
