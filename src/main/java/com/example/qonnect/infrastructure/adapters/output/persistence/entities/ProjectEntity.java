@@ -18,16 +18,16 @@ public class ProjectEntity {
     private Long id;
 
     private String name;
-
     private String description;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    @ManyToOne
-    @JoinColumn(name = "created_by")
-    private UserEntity createdBy;
+    private Long createdById;
 
+    @ManyToOne
+    @JoinColumn(name = "organization_id")
+    private OrganizationEntity organization;
 
     @ManyToMany
     @JoinTable(
@@ -35,11 +35,6 @@ public class ProjectEntity {
             joinColumns = @JoinColumn(name = "project_id")
     )
     private List<UserEntity> teamMembers;
-
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private OrganizationEntity organization;
-
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<BugEntity> bugs;

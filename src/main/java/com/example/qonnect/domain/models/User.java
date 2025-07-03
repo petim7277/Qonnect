@@ -1,13 +1,12 @@
 package com.example.qonnect.domain.models;
 
-import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
+import com.example.qonnect.domain.models.enums.Role;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import org.keycloak.representations.idm.UserRepresentation;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static com.example.qonnect.domain.validators.InputValidator.*;
 
@@ -79,7 +78,7 @@ public class User {
     private String password;
 
     @JsonIgnore
-    private List<Project> projects;
+    private Project projects;
 
     public static void validateUserDetails(User user) {
         validateEmail(user.getEmail());

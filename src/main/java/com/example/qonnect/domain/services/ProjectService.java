@@ -7,7 +7,7 @@ import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Project;
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import lombok.RequiredArgsConstructor;
@@ -50,11 +50,11 @@ public class ProjectService implements ProjectUseCase {
             throw new ProjectAlreadyExistException(ErrorMessages.PROJECT_EXIST_ALREADY, HttpStatus.CONFLICT);
         }
 
-        project.setCreatedBy(user);
-        log.info("Here is the user organization id before setting  " + project.getOrganization() + user.getOrganization().getName());
+        project.setCreatedById(user.getId());
+        log.info("Here is the user organization id before setting  " + project.getOrganizationId() + user.getOrganization().getName());
 
-        project.setOrganization(user.getOrganization());
-        log.info("Here is the user organization id after setting  " + project.getOrganization() + user.getOrganization().getName());
+        project.setOrganizationId(user.getOrganization().getId());
+        log.info("Here is the user organization id after setting  " + project.getOrganizationId() + user.getOrganization().getName());
 
         project.setCreatedAt(LocalDateTime.now());
         project.setUpdatedAt(LocalDateTime.now());

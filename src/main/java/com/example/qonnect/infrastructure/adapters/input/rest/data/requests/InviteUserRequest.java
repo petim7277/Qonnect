@@ -1,10 +1,7 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.data.requests;
 
 
-import com.example.qonnect.domain.models.Role;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import com.example.qonnect.domain.models.enums.Role;
 import lombok.Getter;
 import lombok.Setter;
 

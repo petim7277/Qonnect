@@ -1,6 +1,7 @@
 package com.example.qonnect.domain.models;
 
 
+import com.example.qonnect.domain.models.enums.TaskStatus;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;

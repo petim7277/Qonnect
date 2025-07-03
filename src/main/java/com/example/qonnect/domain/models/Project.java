@@ -18,8 +18,8 @@ public class Project {
     private Long id;
     private String name;
     private String description;
-    private User createdBy;
-    private Organization organization;
+    private Long createdById;
+    private Long organizationId;
     private List<User> teamMembers;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

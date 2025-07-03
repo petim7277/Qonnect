@@ -4,10 +4,12 @@ import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OrganizationEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.ProjectEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.UserEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.OrganizationPersistenceMapper;
 import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.ProjectPersistenceMapper;
+import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OrganizationRepository;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,27 +24,26 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
 
     private final ProjectPersistenceMapper projectPersistenceMapper;
     private final ProjectRepository projectRepository;
+    private final OrganizationRepository organizationRepository;
 
 
     @Override
     public Project saveProject(Project project) {
-        log.info("Domain project before mapping - createdAt: {}, updatedAt: {}",
-                project.getCreatedAt(), project.getUpdatedAt());
+        // Fetch managed OrganizationEntity
+        OrganizationEntity orgEntity = organizationRepository.findById(project.getOrganizationId())
+                .orElseThrow(() -> new IllegalArgumentException("Organization not found"));
 
+        // Convert to ProjectEntity without organization set
         ProjectEntity entity = projectPersistenceMapper.toProjectEntity(project);
-        log.info("Entity after mapping - createdAt: {}, updatedAt: {}",
-                entity.getCreatedAt(), entity.getUpdatedAt());
 
+        // Set managed organization
+        entity.setOrganization(orgEntity);
+
+        // Save and return
         entity = projectRepository.save(entity);
-        log.info("Entity after save - createdAt: {}, updatedAt: {}",
-                entity.getCreatedAt(), entity.getUpdatedAt());
-
-        Project savedProject = projectPersistenceMapper.toProject(entity);
-        log.info("Domain project after mapping back - createdAt: {}, updatedAt: {}",
-                savedProject.getCreatedAt(), savedProject.getUpdatedAt());
-
-        return savedProject;
+        return projectPersistenceMapper.toProject(entity);
     }
+
 
     @Override
     public boolean existById(Long id) {
