@@ -3,6 +3,7 @@ package com.example.qonnect.domain.services;
 import com.example.qonnect.application.input.ProjectUseCase;
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
+import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Project;
@@ -64,7 +65,7 @@ public class ProjectService implements ProjectUseCase {
     @Override
     public Page<Project> getAllProjects(Long organizationId,Pageable pageable) {
         if (organizationId == null) {
-            throw new IllegalArgumentException("Organization ID is required");
+            throw new OrganizationNotFoundException(ErrorMessages.ORGANIZATION_NOT_FOUND,HttpStatus.NOT_FOUND);
         }
         return projectOutputPort.getAllProjects(organizationId,pageable);
     }
