@@ -17,4 +17,5 @@ public interface ProjectPersistenceMapper {
     @Mapping(target = "organization.users", ignore = true)
     @Mapping(target = "bugs", ignore = true)
     ProjectEntity toProjectEntity(Project project);
+
 }
