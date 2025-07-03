@@ -1,6 +1,8 @@
 package com.example.qonnect.application.output;
 
 import com.example.qonnect.domain.models.Project;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ProjectOutputPort {
 
@@ -11,4 +13,5 @@ public interface ProjectOutputPort {
     boolean existsByNameAndOrganizationId(String name, Long organizationId);
 
 
+    Page<Project> getAllProjects(Long organizationId, Pageable pageable);
 }

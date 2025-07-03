@@ -10,16 +10,27 @@ import com.example.qonnect.domain.models.Role;
 import com.example.qonnect.domain.models.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ProjectServiceTest {
 
     @Mock
@@ -34,10 +45,12 @@ class ProjectServiceTest {
     private User adminUser;
     private Organization org;
     private Project project;
+    private Pageable pageable;
+    private List<Project> projectList;
+    private Page<Project> projectPage;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
 
         org = new Organization();
         org.setId(1L);
@@ -52,6 +65,25 @@ class ProjectServiceTest {
         project = new Project();
         project.setName("New Project");
         project.setDescription("A test project");
+
+        pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
+
+        Project project1 = new Project();
+        project1.setId(1L);
+        project1.setName("Project 1");
+        project1.setDescription("First project");
+        project1.setOrganization(org);
+        project1.setCreatedAt(LocalDateTime.now().minusDays(1));
+
+        Project project2 = new Project();
+        project2.setId(2L);
+        project2.setName("Project 2");
+        project2.setDescription("Second project");
+        project2.setOrganization(org);
+        project2.setCreatedAt(LocalDateTime.now());
+
+        projectList = Arrays.asList(project1, project2);
+        projectPage = new PageImpl<>(projectList, pageable, 2);
     }
 
     @Test
@@ -102,4 +134,73 @@ class ProjectServiceTest {
 
         verify(projectOutputPort, never()).saveProject(any());
     }
+
+
+    @Test
+    void shouldGetAllProjectsSuccessfully_whenValidOrganizationId() {
+        Long organizationId = 1L;
+        when(projectOutputPort.getAllProjects(organizationId, pageable)).thenReturn(projectPage);
+
+        Page<Project> result = projectService.getAllProjects(organizationId, pageable);
+
+        assertNotNull(result);
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+        assertEquals("Project 1", result.getContent().get(0).getName());
+        assertEquals("Project 2", result.getContent().get(1).getName());
+        assertEquals(0, result.getNumber());
+        assertEquals(10, result.getSize());
+
+        verify(projectOutputPort).getAllProjects(organizationId, pageable);
+    }
+
+    @Test
+    void shouldReturnEmptyPage_whenNoProjectsFound() {
+        Long organizationId = 1L;
+        Page<Project> emptyPage = new PageImpl<>(Arrays.asList(), pageable, 0);
+        when(projectOutputPort.getAllProjects(organizationId, pageable)).thenReturn(emptyPage);
+
+        Page<Project> result = projectService.getAllProjects(organizationId, pageable);
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+        assertEquals(0, result.getContent().size());
+        assertTrue(result.getContent().isEmpty());
+
+        verify(projectOutputPort).getAllProjects(organizationId, pageable);
+    }
+
+    @Test
+    void shouldThrowException_whenOrganizationIdIsNull() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> projectService.getAllProjects(null, pageable));
+
+        assertEquals("Organization ID is required", ex.getMessage());
+        verify(projectOutputPort, never()).getAllProjects(any(), any());
+    }
+
+
+
+
+
+    @Test
+    void shouldHandleDifferentPageSizes() {
+        Long organizationId = 1L;
+        Pageable customPageable = PageRequest.of(1, 5, Sort.by("name").ascending());
+        Page<Project> customPage = new PageImpl<>(projectList, customPageable, 7);
+
+        when(projectOutputPort.getAllProjects(organizationId, customPageable)).thenReturn(customPage);
+
+        Page<Project> result = projectService.getAllProjects(organizationId, customPageable);
+
+        assertNotNull(result);
+        assertEquals(7, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+        assertEquals(1, result.getNumber());
+        assertEquals(5, result.getSize());
+
+        verify(projectOutputPort).getAllProjects(organizationId, customPageable);
+    }
+
+
 }
