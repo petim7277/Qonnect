@@ -1,6 +1,6 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.data.requests;
 
-import com.example.qonnect.domain.models.OtpType;
+import com.example.qonnect.domain.models.enums.OtpType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

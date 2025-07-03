@@ -1,4 +1,4 @@
-package com.example.qonnect.domain.models;
+package com.example.qonnect.domain.models.enums;
 
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 

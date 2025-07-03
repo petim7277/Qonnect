@@ -2,7 +2,7 @@ package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 
 import com.example.qonnect.application.input.*;
 import com.example.qonnect.domain.exceptions.*;
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.*;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.*;
@@ -23,7 +23,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;

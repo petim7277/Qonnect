@@ -2,7 +2,7 @@ package com.example.qonnect.infrastructure.adapters.config.security;
 
 import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import org.junit.jupiter.api.BeforeEach;

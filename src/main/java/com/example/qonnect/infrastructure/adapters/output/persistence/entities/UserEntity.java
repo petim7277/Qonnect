@@ -1,12 +1,12 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.entities;
 
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
+
 @Entity
 @Getter
 @Setter
@@ -40,8 +40,8 @@ public class UserEntity {
     @JoinColumn(name = "organization_id")
     private OrganizationEntity organization;
 
-    @ManyToMany(mappedBy = "teamMembers")
-    private List<ProjectEntity> projects;
+    @ManyToOne
+    private ProjectEntity projects;
 
     private LocalDateTime invitedAt;
     private String inviteToken;

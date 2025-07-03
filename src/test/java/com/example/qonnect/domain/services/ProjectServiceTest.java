@@ -2,18 +2,19 @@ package com.example.qonnect.domain.services;
 
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
+import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -72,14 +73,14 @@ class ProjectServiceTest {
         project1.setId(1L);
         project1.setName("Project 1");
         project1.setDescription("First project");
-        project1.setOrganization(org);
+        project1.setOrganizationId(org.getId());
         project1.setCreatedAt(LocalDateTime.now().minusDays(1));
 
         Project project2 = new Project();
         project2.setId(2L);
         project2.setName("Project 2");
         project2.setDescription("Second project");
-        project2.setOrganization(org);
+        project1.setOrganizationId(org.getId());
         project2.setCreatedAt(LocalDateTime.now());
 
         projectList = Arrays.asList(project1, project2);
@@ -95,8 +96,8 @@ class ProjectServiceTest {
         Project result = projectService.createProject(adminUser, project);
 
         assertNotNull(result);
-        assertEquals(adminUser, result.getCreatedBy());
-        assertEquals(org, result.getOrganization());
+        assertEquals(adminUser.getId(), result.getCreatedById());
+        assertEquals(org.getId(), result.getOrganizationId());
         assertEquals("New Project", result.getName());
 
         verify(projectOutputPort).saveProject(any(Project.class));
@@ -172,10 +173,10 @@ class ProjectServiceTest {
 
     @Test
     void shouldThrowException_whenOrganizationIdIsNull() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        OrganizationNotFoundException ex = assertThrows(OrganizationNotFoundException.class,
                 () -> projectService.getAllProjects(null, pageable));
 
-        assertEquals("Organization ID is required", ex.getMessage());
+        assertEquals(ErrorMessages.ORGANIZATION_NOT_FOUND, ex.getMessage());
         verify(projectOutputPort, never()).getAllProjects(any(), any());
     }
 

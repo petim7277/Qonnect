@@ -1,5 +1,7 @@
 package com.example.qonnect.domain.models;
 
+import com.example.qonnect.domain.models.enums.BugSeverity;
+import com.example.qonnect.domain.models.enums.BugStatus;
 import lombok.*;
 import java.time.LocalDateTime;
 

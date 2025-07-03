@@ -1,6 +1,6 @@
 package com.example.qonnect.infrastructure.adapters.output.keycloak;
 
-import static com.example.qonnect.domain.models.Role.*;
+import static com.example.qonnect.domain.models.enums.Role.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -10,7 +10,6 @@ import com.example.qonnect.application.output.IdentityManagementOutputPort;
 import com.example.qonnect.domain.exceptions.AuthenticationException;
 import com.example.qonnect.domain.exceptions.IdentityManagementException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
-import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.User;
 //import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.AfterEach;

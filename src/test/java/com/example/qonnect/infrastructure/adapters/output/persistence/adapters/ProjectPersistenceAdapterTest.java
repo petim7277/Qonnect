@@ -2,8 +2,10 @@ package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OrganizationEntity;
+import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OrganizationRepository;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,11 +21,13 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class ProjectPersistenceAdapterIntegrationTest {
+class ProjectPersistenceAdapterTest {
 
     @Autowired
     private ProjectPersistenceAdapter adapter;
 
+    @Autowired
+    private OrganizationRepository organizationRepository;
 
     private Organization org;
     private User user;
@@ -32,9 +36,15 @@ class ProjectPersistenceAdapterIntegrationTest {
 
     @BeforeEach
     void setUp() {
-       org = new Organization();
-        org.setId(1L);
-        org.setName("Comma Hub");
+        OrganizationEntity orgEntity = OrganizationEntity.builder()
+                .name("Comma Hub")
+                .build();
+
+        OrganizationEntity savedOrg = organizationRepository.save(orgEntity);
+
+        org = new Organization();
+        org.setId(savedOrg.getId());
+        org.setName(savedOrg.getName());
 
         user = new User();
         user.setId(1L);
@@ -45,13 +55,14 @@ class ProjectPersistenceAdapterIntegrationTest {
         project = Project.builder()
                 .name("Qonnect")
                 .description("Bug Tracker")
-                .createdBy(user)
-                .organization(org)
+                .createdById(user.getId())
+                .organizationId(savedOrg.getId())
                 .createdAt(LocalDateTime.now())
                 .build();
 
         pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
     }
+
 
     @Test
     void shouldSaveProjectSuccessfully() {
@@ -75,7 +86,7 @@ class ProjectPersistenceAdapterIntegrationTest {
     void shouldReturnTrue_whenProjectExistsByNameAndOrganizationId() {
         Project saved = adapter.saveProject(project);
 
-        boolean exists = adapter.existsByNameAndOrganizationId("Qonnect", project.getOrganization().getId());
+        boolean exists = adapter.existsByNameAndOrganizationId("Qonnect", project.getOrganizationId());
 
         assertTrue(exists);
     }
@@ -83,37 +94,36 @@ class ProjectPersistenceAdapterIntegrationTest {
 
     @Test
     void shouldGetAllProjectsSuccessfully_whenProjectsExist() {
-        // Given - Save multiple projects for the same organization
         Project project1 = Project.builder()
                 .name("Project 1")
                 .description("First project")
-                .createdBy(user)
-                .organization(org)
+                .createdById(user.getId())
+                .organizationId(org.getId())
                 .createdAt(LocalDateTime.now().minusDays(2))
                 .build();
 
         Project project2 = Project.builder()
                 .name("Project 2")
                 .description("Second project")
-                .createdBy(user)
-                .organization(org)
+                .createdById(user.getId())
+                .organizationId(org.getId())
                 .createdAt(LocalDateTime.now().minusDays(1))
                 .build();
 
         adapter.saveProject(project1);
         adapter.saveProject(project2);
 
-        // When
+
         Page<Project> result = adapter.getAllProjects(org.getId(), pageable);
 
-        // Then
+
         assertNotNull(result);
         assertTrue(result.getTotalElements() >= 2);
         assertTrue(result.getContent().size() >= 2);
         assertEquals(0, result.getNumber());
         assertEquals(10, result.getSize());
 
-        // Verify projects are returned (order may vary based on creation time)
+
         boolean hasProject1 = result.getContent().stream()
                 .anyMatch(p -> "Project 1".equals(p.getName()));
         boolean hasProject2 = result.getContent().stream()
@@ -125,13 +135,10 @@ class ProjectPersistenceAdapterIntegrationTest {
 
     @Test
     void shouldReturnEmptyPage_whenNoProjectsExist() {
-        // Given - Using a non-existent organization ID
         Long nonExistentOrgId = 999L;
 
-        // When
         Page<Project> result = adapter.getAllProjects(nonExistentOrgId, pageable);
 
-        // Then
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
         assertEquals(0, result.getContent().size());
