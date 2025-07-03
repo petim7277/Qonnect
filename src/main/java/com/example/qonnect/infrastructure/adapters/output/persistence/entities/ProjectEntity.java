@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -16,13 +18,16 @@ public class ProjectEntity {
     private Long id;
 
     private String name;
-
     private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "created_by")
-    private UserEntity createdBy;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
+    private Long createdById;
+
+    @ManyToOne
+    @JoinColumn(name = "organization_id")
+    private OrganizationEntity organization;
 
     @ManyToMany
     @JoinTable(
@@ -30,11 +35,6 @@ public class ProjectEntity {
             joinColumns = @JoinColumn(name = "project_id")
     )
     private List<UserEntity> teamMembers;
-
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private OrganizationEntity organization;
-
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<BugEntity> bugs;

@@ -1,6 +1,6 @@
 package com.example.qonnect.application.input;
 
-import com.example.qonnect.domain.models.OtpType;
+import com.example.qonnect.domain.models.enums.OtpType;
 
 public interface ResendOtpUseCases {
 

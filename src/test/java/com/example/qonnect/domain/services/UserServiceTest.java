@@ -6,9 +6,8 @@ import com.example.qonnect.domain.exceptions.IdentityManagementException;
 import com.example.qonnect.domain.exceptions.OtpException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
-import com.example.qonnect.domain.models.Otp;
-import com.example.qonnect.domain.models.OtpType;
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.OtpType;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.config.security.TokenBlacklistService;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
@@ -28,7 +27,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import java.time.Instant;
 import java.util.stream.Stream;
 
-import static com.example.qonnect.domain.models.OtpType.VERIFICATION;
+import static com.example.qonnect.domain.models.enums.OtpType.VERIFICATION;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 

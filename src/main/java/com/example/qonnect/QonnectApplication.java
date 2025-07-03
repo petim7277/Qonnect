@@ -38,7 +38,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
         type = SecuritySchemeType.HTTP,
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER,
-        openIdConnectUrl = "http://localhost:9090/realms/Qonnect/.well-known/openid-configuration"
+        openIdConnectUrl = "http://localhost:9091/realms/Qonnect/.well-known/openid-configuration"
 )
 
 @SpringBootApplication

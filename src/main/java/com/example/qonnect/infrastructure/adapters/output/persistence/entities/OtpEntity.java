@@ -1,7 +1,7 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.entities;
 
 
-import com.example.qonnect.domain.models.OtpType;
+import com.example.qonnect.domain.models.enums.OtpType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -7,7 +7,7 @@ import com.example.qonnect.application.output.EmailOutputPort;
 import com.example.qonnect.application.output.OtpOutputPort;
 import com.example.qonnect.domain.exceptions.OtpException;
 import com.example.qonnect.domain.models.Otp;
-import com.example.qonnect.domain.models.OtpType;
+import com.example.qonnect.domain.models.enums.OtpType;
 import com.example.qonnect.domain.template.EmailTemplate;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import lombok.RequiredArgsConstructor;

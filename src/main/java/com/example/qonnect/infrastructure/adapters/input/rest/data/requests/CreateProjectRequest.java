@@ -1,15 +1,14 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.data.requests;
 
-
-import com.example.qonnect.domain.models.enums.Role;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class InviteUserRequest {
+public class CreateProjectRequest {
 
-    private String email;
+    private String name;
 
-    private Role role;
+    private String description;
 }

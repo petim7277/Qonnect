@@ -1,23 +1,25 @@
 package com.example.qonnect.domain.models;
 
-import com.example.qonnect.domain.models.enums.BugSeverity;
-import com.example.qonnect.domain.models.enums.BugStatus;
+
+import com.example.qonnect.domain.models.enums.TaskStatus;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Bug {
+public class Task {
     private Long id;
     private String title;
     private String description;
-    private BugSeverity severity;
-    private BugStatus status;
-    private User reportedBy;
-    private Task task;
+    private TaskStatus status;
+    private User assignedTo;
+    private LocalDateTime dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Project project;
+    private List<Bug> bugs;
 }

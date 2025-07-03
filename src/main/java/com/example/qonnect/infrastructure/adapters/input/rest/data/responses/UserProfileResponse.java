@@ -1,6 +1,6 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.data.responses;
 
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
