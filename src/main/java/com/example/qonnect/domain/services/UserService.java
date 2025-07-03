@@ -177,11 +177,11 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswo
 
         if (jti != null && expiry != null) {
             long ttlSeconds = Duration.between(now, expiry).getSeconds();
-            log.info("📝 Storing jti={} in Redis with TTL={} seconds", jti, ttlSeconds); // 👈 ADD THIS
+            log.info(" Storing jti={} in Redis with TTL={} seconds", jti, ttlSeconds);
             tokenBlacklistService.blacklistToken(jti, ttlSeconds);
-            log.info("🔒 Token with jti={} blacklisted for {} seconds", jti, ttlSeconds);
+            log.info(" Token with jti={} blacklisted for {} seconds", jti, ttlSeconds);
         } else {
-            log.warn("⚠️ Could not extract jti or expiry from token during logout");
+            log.warn(" Could not extract jti or expiry from token during logout");
         }
     }
 

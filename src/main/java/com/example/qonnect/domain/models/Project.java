@@ -20,4 +20,8 @@ public class Project {
     private Organization organization;
     private List<User> teamMembers;
     private List<Bug> bugs;
+
+    public static void validateProjectDetails(){
+
+    }
 }
