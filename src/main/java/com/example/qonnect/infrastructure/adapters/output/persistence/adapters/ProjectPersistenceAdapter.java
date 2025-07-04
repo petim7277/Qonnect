@@ -1,6 +1,7 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
 import com.example.qonnect.application.output.ProjectOutputPort;
+import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -25,21 +28,20 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
     private final ProjectRepository projectRepository;
     private final OrganizationRepository organizationRepository;
 
-
     @Override
     public Project saveProject(Project project) {
-        // Fetch managed OrganizationEntity
+        if (project.getId() != null && !projectRepository.existsById(project.getId())) {
+            throw new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+
         OrganizationEntity orgEntity = organizationRepository.findById(project.getOrganizationId())
-                .orElseThrow(() -> new IllegalArgumentException("Organization not found"));
+                .orElseThrow(() -> new OrganizationNotFoundException(ErrorMessages.ORGANIZATION_NOT_FOUND, HttpStatus.NOT_FOUND));
 
-        // Convert to ProjectEntity without organization set
         ProjectEntity entity = projectPersistenceMapper.toProjectEntity(project);
-
-        // Set managed organization
         entity.setOrganization(orgEntity);
 
-        // Save and return
         entity = projectRepository.save(entity);
+
         return projectPersistenceMapper.toProject(entity);
     }
 
@@ -64,7 +66,6 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
         log.debug("Project with ID: {} successfully deleted", projectId);
     }
 
-
     @Override
     public boolean existsByNameAndOrganizationId(String name, Long organizationId) {
         return projectRepository.existsProjectNameInOrganization(name, organizationId);
@@ -81,5 +82,29 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
         log.info("Mapped {} project entities to domain objects", projects.getNumberOfElements());
 
         return projects;
+    }
+
+    @Override
+    public Optional<Project> findById(Long id) {
+        log.info("Finding project by ID: {}", id);
+
+        Optional<ProjectEntity> projectEntity = projectRepository.findById(id);
+
+        if (projectEntity.isPresent()) {
+            Project project = projectPersistenceMapper.toProject(projectEntity.get());
+            log.info("Found project: {} with ID: {}", project.getName(), id);
+            return Optional.of(project);
+        } else {
+            log.info("No project found with ID: {}", id);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public boolean existsByNameAndOrganizationIdAndNotId(String name, Long organizationId, Long projectId) {
+        log.info("Checking if project name '{}' exists in organization {} excluding project ID: {}",
+                name, organizationId, projectId);
+
+        return projectRepository.existsProjectNameInOrganizationExcludingId(name, organizationId, projectId);
     }
 }

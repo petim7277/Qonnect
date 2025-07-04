@@ -1,12 +1,16 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
+import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
+import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OrganizationEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OrganizationRepository;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.ProjectRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,8 +19,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -63,6 +69,14 @@ class ProjectPersistenceAdapterTest {
         pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
     }
 
+    @AfterEach
+    void tearDown() {
+        adapter.getAllProjects(org.getId(), pageable)
+                .getContent()
+                .forEach(adapter::deleteProject);
+
+        organizationRepository.deleteById(org.getId());
+    }
 
     @Test
     void shouldSaveProjectSuccessfully() {
@@ -145,5 +159,179 @@ class ProjectPersistenceAdapterTest {
         assertTrue(result.getContent().isEmpty());
         assertEquals(0, result.getNumber());
         assertEquals(10, result.getSize());
+    }
+
+
+
+    @Test
+    void shouldFindProjectById_whenProjectExists() {
+        Project saved = adapter.saveProject(project);
+
+        Optional<Project> result = adapter.findById(saved.getId());
+
+        assertTrue(result.isPresent());
+        assertEquals(saved.getId(), result.get().getId());
+        assertEquals("Qonnect", result.get().getName());
+        assertEquals("Bug Tracker", result.get().getDescription());
+        assertEquals(org.getId(), result.get().getOrganizationId());
+    }
+
+    @Test
+    void shouldReturnEmpty_whenProjectNotFoundById() {
+        Long nonExistentId = 999L;
+
+        Optional<Project> result = adapter.findById(nonExistentId);
+
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void shouldDeleteProjectSuccessfully_whenProjectExists() {
+        Project saved = adapter.saveProject(project);
+        assertTrue(adapter.existById(saved.getId()));
+
+        adapter.deleteProject(saved);
+
+        assertFalse(adapter.existById(saved.getId()));
+    }
+
+    @Test
+    void shouldThrowException_whenDeletingNullProject() {
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> adapter.deleteProject(null));
+
+        assertEquals(ErrorMessages.PROJECT_ID_IS_REQUIRED, ex.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+    }
+
+    @Test
+    void shouldThrowException_whenDeletingProjectWithNullId() {
+        Project projectWithNullId = new Project();
+        projectWithNullId.setName("Test Project");
+
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> adapter.deleteProject(projectWithNullId));
+
+        assertEquals(ErrorMessages.PROJECT_ID_IS_REQUIRED, ex.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+    }
+
+    @Test
+    void shouldThrowException_whenDeletingNonExistentProject() {
+
+        Project nonExistentProject = new Project();
+        nonExistentProject.setId(999L);
+        nonExistentProject.setName("Non-existent Project");
+
+
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> adapter.deleteProject(nonExistentProject));
+
+        assertEquals(ErrorMessages.PROJECT_NOT_FOUND, ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+    }
+
+    @Test
+    void shouldReturnTrue_whenProjectNameExistsExcludingCurrentProject() {
+        Project project1 = Project.builder()
+                .name("Existing Project")
+                .description("First project")
+                .createdById(user.getId())
+                .organizationId(org.getId())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Project project2 = Project.builder()
+                .name("Another Project")
+                .description("Second project")
+                .createdById(user.getId())
+                .organizationId(org.getId())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Project saved1 = adapter.saveProject(project1);
+        Project saved2 = adapter.saveProject(project2);
+
+
+        boolean exists = adapter.existsByNameAndOrganizationIdAndNotId(
+                "Existing Project", org.getId(), saved2.getId());
+
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void shouldReturnFalse_whenProjectNameDoesNotExistExcludingCurrentProject() {
+        Project saved = adapter.saveProject(project);
+
+        boolean exists = adapter.existsByNameAndOrganizationIdAndNotId(
+                "Qonnect", org.getId(), saved.getId());
+
+        assertFalse(exists);
+    }
+
+    @Test
+    void shouldReturnFalse_whenProjectNameDoesNotExistAtAll() {
+        Project saved = adapter.saveProject(project);
+
+        boolean exists = adapter.existsByNameAndOrganizationIdAndNotId(
+                "Non-existent Project", org.getId(), saved.getId());
+
+        assertFalse(exists);
+    }
+
+    @Test
+    void shouldReturnTrue_whenProjectNameExistsInDifferentOrganization() {
+        OrganizationEntity anotherOrgEntity = OrganizationEntity.builder()
+                .name("Another Organization")
+                .build();
+        OrganizationEntity savedAnotherOrg = organizationRepository.save(anotherOrgEntity);
+
+        Project projectInAnotherOrg = Project.builder()
+                .name("Qonnect")
+                .description("Same name in different org")
+                .createdById(user.getId())
+                .organizationId(savedAnotherOrg.getId())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Project saved1 = adapter.saveProject(project);
+        Project saved2 = adapter.saveProject(projectInAnotherOrg);
+
+
+        boolean exists = adapter.existsByNameAndOrganizationIdAndNotId(
+                "Qonnect", org.getId(), saved1.getId());
+
+
+        assertFalse(exists);
+    }
+
+    @Test
+    void shouldUpdateProjectSuccessfully_whenProjectExists() {
+        Project saved = adapter.saveProject(project);
+
+        saved.setName("Updated Project Name");
+        saved.setDescription("Updated description");
+        saved.setUpdatedAt(LocalDateTime.now());
+
+        Project updated = adapter.saveProject(saved);
+
+        assertNotNull(updated);
+        assertEquals(saved.getId(), updated.getId());
+        assertEquals("Updated Project Name", updated.getName());
+        assertEquals("Updated description", updated.getDescription());
+        assertEquals(org.getId(), updated.getOrganizationId());
+    }
+
+    @Test
+    void shouldThrowException_whenSavingProjectWithNonExistentOrganization() {
+
+        project.setOrganizationId(999L);
+
+        OrganizationNotFoundException ex = assertThrows(OrganizationNotFoundException.class,
+                () -> adapter.saveProject(project));
+
+        assertEquals(ErrorMessages.ORGANIZATION_NOT_FOUND, ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
     }
 }
