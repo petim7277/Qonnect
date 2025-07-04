@@ -2,6 +2,7 @@ package com.example.qonnect.infrastructure.adapters.input.rest.mapper;
 
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CreateProjectRequest;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.UpdateProjectRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectCreationResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectResponse;
 import jakarta.validation.Valid;
@@ -19,4 +20,6 @@ public interface ProjectRestMapper {
     ProjectCreationResponse toResponse(Project created);
 
     ProjectResponse toProjectResponse(Project project);
+
+    Project toProject(@Valid UpdateProjectRequest request);
 }

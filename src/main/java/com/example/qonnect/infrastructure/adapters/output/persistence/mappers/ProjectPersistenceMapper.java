@@ -6,20 +6,19 @@ import org.mapstruct.*;
 
 @Mapper(
         componentModel = "spring",
-        uses = {UserPersistenceMapper.class}
+        uses = { UserPersistenceMapper.class }
 )
 public interface ProjectPersistenceMapper {
 
     @Mapping(source = "organization.id", target = "organizationId")
+    @Mapping(source = "teamMembers", target = "teamMembers", qualifiedByName = "toUserListWithoutProjects")
+    @Mapping(target = "bugs", ignore = true)
     Project toProject(ProjectEntity project);
 
-    @Mapping(target = "organization", ignore = true) 
+    @Mapping(target = "organization.id", source = "organizationId")
+    @Mapping(target = "teamMembers", ignore = true)
+    @Mapping(target = "bugs", ignore = true)
     ProjectEntity toProjectEntity(Project project);
-
-    @AfterMapping
-    default void initTeamMembers(@MappingTarget Project project) {
-        if (project.getTeamMembers() == null) {
-            project.setTeamMembers(new java.util.ArrayList<>());
-        }
-    }
 }
+
+

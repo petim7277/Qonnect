@@ -6,6 +6,7 @@ import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
+import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Project;
@@ -33,17 +34,11 @@ public class ProjectService implements ProjectUseCase, AssignUserToProjectUseCas
     private final ProjectOutputPort projectOutputPort;
     private final UserOutputPort userOutputPort;
 
-
     @Override
     public Project createProject(User user, Project project) {
+        validateUserExists(user);
+        validateUserIsAdmin(user);
 
-        if (!userOutputPort.existById(user.getId())) {
-            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
-        }
-
-        if (!Role.ADMIN.equals(user.getRole())) {
-            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
-        }
         log.info("Here is the user organization id " + user.getOrganization());
 
         validateName(project.getName(), "project name");
@@ -66,13 +61,28 @@ public class ProjectService implements ProjectUseCase, AssignUserToProjectUseCas
     }
 
     @Override
-    public Page<Project> getAllProjects(Long organizationId,Pageable pageable) {
+    public Page<Project> getAllProjects(Long organizationId, Pageable pageable) {
         if (organizationId == null) {
-            throw new OrganizationNotFoundException(ErrorMessages.ORGANIZATION_NOT_FOUND,HttpStatus.NOT_FOUND);
+            throw new OrganizationNotFoundException(ErrorMessages.ORGANIZATION_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
-        return projectOutputPort.getAllProjects(organizationId,pageable);
+        return projectOutputPort.getAllProjects(organizationId, pageable);
     }
 
+    @Override
+    public Project getProjectById(User user, Long projectId) {
+        log.info("Retrieving project with ID: {} for user: {}", projectId, user.getId());
+
+        validateUserExists(user);
+        validateProjectId(projectId);
+
+        Project project = projectOutputPort.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        validateUserBelongsToProjectOrganization(user, project);
+
+        log.info("Successfully retrieved project: {} for user: {}", project.getName(), user.getId());
+        return project;
+    }
     @Override
     public void assignUserToProject(Long projectId, Long userId, User performingUser) {
         if (!Role.ADMIN.equals(performingUser.getRole())) {
@@ -96,5 +106,90 @@ public class ProjectService implements ProjectUseCase, AssignUserToProjectUseCas
 
         project.getTeamMembers().add(userToAssign);
         projectOutputPort.saveProject(project);
+    }
+
+
+    @Override
+    public Project updateProject(User user, Long projectId, Project updatedProject) {
+        log.info("Updating project with ID: {} for user: {}", projectId, user.getId());
+
+        validateUserExists(user);
+        validateUserIsAdmin(user);
+        validateProjectId(projectId);
+
+        Project existingProject = projectOutputPort.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        validateUserBelongsToProjectOrganization(user, existingProject);
+
+        validateName(updatedProject.getName(), "project name");
+        validateName(updatedProject.getDescription(), "project description");
+
+        if (projectOutputPort.existsByNameAndOrganizationIdAndNotId(
+                updatedProject.getName(),
+                user.getOrganization().getId(),
+                projectId)) {
+            throw new ProjectAlreadyExistException(ErrorMessages.PROJECT_EXIST_ALREADY, HttpStatus.CONFLICT);
+        }
+
+        existingProject.setName(updatedProject.getName());
+        existingProject.setDescription(updatedProject.getDescription());
+        existingProject.setUpdatedAt(LocalDateTime.now());
+
+        Project savedProject = projectOutputPort.saveProject(existingProject);
+        log.info("Successfully updated project: {} for user: {}", savedProject.getName(), user.getId());
+
+        return savedProject;
+    }
+
+    @Override
+    public void deleteProject(User user, Long projectId) {
+        log.info("Deleting project with ID: {} for user: {}", projectId, user.getId());
+
+        validateUserExists(user);
+        validateUserIsAdmin(user);
+        validateProjectId(projectId);
+
+        Project project = projectOutputPort.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        validateUserBelongsToProjectOrganization(user, project);
+
+        projectOutputPort.deleteProject(project);
+        log.info("Successfully deleted project: {} for user: {}", project.getName(), user.getId());
+    }
+
+    private void validateUserExists(User user) {
+        if (user == null || user.getId() == null) {
+            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+
+        if (!userOutputPort.existById(user.getId())) {
+            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+    }
+
+    private void validateUserIsAdmin(User user) {
+        if (!Role.ADMIN.equals(user.getRole())) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
+    }
+
+    private void validateProjectId(Long projectId) {
+        if (projectId == null) {
+            throw new ProjectNotFoundException("Project ID is required", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private void validateUserBelongsToProjectOrganization(User user, Project project) {
+        if (user.getOrganization() == null || user.getOrganization().getId() == null) {
+            throw new OrganizationNotFoundException(ErrorMessages.ORGANIZATION_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+
+        if (!user.getOrganization().getId().equals(project.getOrganizationId())) {
+            log.warn("User {} from organization {} attempted to access project {} from organization {}",
+                    user.getId(), user.getOrganization().getId(), project.getId(), project.getOrganizationId());
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
     }
 }

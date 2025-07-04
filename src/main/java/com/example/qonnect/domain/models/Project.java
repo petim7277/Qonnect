@@ -25,4 +25,8 @@ public class Project {
     private LocalDateTime updatedAt;
     private List<Task> tasks;
     private List<Bug> bugs;
+
+    public static void validateProjectDetails(){
+
+    }
 }

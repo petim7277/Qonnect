@@ -4,6 +4,7 @@ import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
+import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Organization;
@@ -29,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -51,6 +53,9 @@ class ProjectServiceTest {
     private Pageable pageable;
     private List<Project> projectList;
     private Page<Project> projectPage;
+
+    private User developerUser;
+    private Project existingProject;
 
     @BeforeEach
     void setUp() {
@@ -87,6 +92,22 @@ class ProjectServiceTest {
 
         projectList = Arrays.asList(project1, project2);
         projectPage = new PageImpl<>(projectList, pageable, 2);
+
+
+        developerUser = new User();
+        developerUser.setId(2L);
+        developerUser.setEmail("developer@example.com");
+        developerUser.setRole(Role.DEVELOPER);
+        developerUser.setOrganization(org);
+
+        existingProject = new Project();
+        existingProject.setId(1L);
+        existingProject.setName("Existing Project");
+        existingProject.setDescription("An existing project");
+        existingProject.setOrganizationId(org.getId());
+        existingProject.setCreatedById(adminUser.getId());
+        existingProject.setCreatedAt(LocalDateTime.now().minusDays(1));
+        existingProject.setUpdatedAt(LocalDateTime.now().minusDays(1));
     }
 
     @Test
@@ -280,6 +301,311 @@ class ProjectServiceTest {
         assertThrows(AccessDeniedException.class, () ->
                 projectService.assignUserToProject(1L, 2L, adminUser));
     }
+
+
+
+    @Test
+    void shouldGetProjectById_whenValidAdminUser() {
+        Long projectId = 1L;
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+
+        Project result = projectService.getProjectById(adminUser, projectId);
+
+        assertNotNull(result);
+        assertEquals(existingProject.getId(), result.getId());
+        assertEquals(existingProject.getName(), result.getName());
+        verify(projectOutputPort).findById(projectId);
+    }
+
+    @Test
+    void shouldGetProjectById_whenValidDeveloperUser() {
+        Long projectId = 1L;
+        when(userOutputPort.existById(developerUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+
+        Project result = projectService.getProjectById(developerUser, projectId);
+
+        assertNotNull(result);
+        assertEquals(existingProject.getId(), result.getId());
+        verify(projectOutputPort).findById(projectId);
+    }
+
+    @Test
+    void shouldThrowException_whenGetProjectByIdWithNullProjectId() {
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> projectService.getProjectById(adminUser, null));
+
+        assertEquals("Project ID is required", ex.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        verify(projectOutputPort, never()).findById(any());
+    }
+
+    @Test
+    void shouldThrowException_whenGetProjectByIdWithNonExistentProject() {
+        Long projectId = 999L;
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.empty());
+
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> projectService.getProjectById(adminUser, projectId));
+
+        assertEquals(ErrorMessages.PROJECT_NOT_FOUND, ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+    }
+
+    @Test
+    void shouldThrowException_whenGetProjectByIdWithUserFromDifferentOrganization() {
+        Long projectId = 1L;
+        Organization differentOrg = new Organization();
+        differentOrg.setId(2L);
+        differentOrg.setName("Different Org");
+
+        User userFromDifferentOrg = new User();
+        userFromDifferentOrg.setId(3L);
+        userFromDifferentOrg.setEmail("other@example.com");
+        userFromDifferentOrg.setRole(Role.ADMIN);
+        userFromDifferentOrg.setOrganization(differentOrg);
+
+        when(userOutputPort.existById(userFromDifferentOrg.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
+                () -> projectService.getProjectById(userFromDifferentOrg, projectId));
+
+        assertEquals(ErrorMessages.ACCESS_DENIED, ex.getMessage());
+    }
+
+    @Test
+    void shouldThrowException_whenGetProjectByIdWithNonExistentUser() {
+        Long projectId = 1L;
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(false);
+
+        UserNotFoundException ex = assertThrows(UserNotFoundException.class,
+                () -> projectService.getProjectById(adminUser, projectId));
+
+        assertEquals(ErrorMessages.USER_NOT_FOUND, ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+    }
+
+
+    @Test
+    void shouldUpdateProject_whenValidAdminUser() {
+        Long projectId = 1L;
+        Project updatedProject = new Project();
+        updatedProject.setName("Updated Project Name");
+        updatedProject.setDescription("Updated description");
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectOutputPort.existsByNameAndOrganizationIdAndNotId(
+                "Updated Project Name", org.getId(), projectId)).thenReturn(false);
+        when(projectOutputPort.saveProject(any(Project.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Project result = projectService.updateProject(adminUser, projectId, updatedProject);
+
+        assertNotNull(result);
+        assertEquals("Updated Project Name", result.getName());
+        assertEquals("Updated description", result.getDescription());
+        assertEquals(org.getId(), result.getOrganizationId());
+        assertNotNull(result.getUpdatedAt());
+        verify(projectOutputPort).saveProject(any(Project.class));
+    }
+
+    @Test
+    void shouldThrowException_whenUpdateProjectWithDeveloperUser() {
+        Long projectId = 1L;
+        Project updatedProject = new Project();
+        updatedProject.setName("Updated Name");
+        updatedProject.setDescription("Updated description");
+
+        when(userOutputPort.existById(developerUser.getId())).thenReturn(true);
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
+                () -> projectService.updateProject(developerUser, projectId, updatedProject));
+
+        assertEquals(ErrorMessages.ACCESS_DENIED, ex.getMessage());
+        verify(projectOutputPort, never()).saveProject(any());
+    }
+
+    @Test
+    void shouldThrowException_whenUpdateProjectWithDuplicateName() {
+        Long projectId = 1L;
+        Project updatedProject = new Project();
+        updatedProject.setName("Duplicate Name");
+        updatedProject.setDescription("Updated description");
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectOutputPort.existsByNameAndOrganizationIdAndNotId(
+                "Duplicate Name", org.getId(), projectId)).thenReturn(true);
+
+        ProjectAlreadyExistException ex = assertThrows(ProjectAlreadyExistException.class,
+                () -> projectService.updateProject(adminUser, projectId, updatedProject));
+
+        assertEquals(ErrorMessages.PROJECT_EXIST_ALREADY, ex.getMessage());
+        assertEquals(HttpStatus.CONFLICT, ex.getStatus());
+        verify(projectOutputPort, never()).saveProject(any());
+    }
+
+    @Test
+    void shouldThrowException_whenUpdateProjectWithNullProjectId() {
+        Project updatedProject = new Project();
+        updatedProject.setName("Updated Name");
+        updatedProject.setDescription("Updated description");
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> projectService.updateProject(adminUser, null, updatedProject));
+
+        assertEquals("Project ID is required", ex.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+    }
+
+    @Test
+    void shouldThrowException_whenUpdateProjectWithNonExistentProject() {
+        Long projectId = 999L;
+        Project updatedProject = new Project();
+        updatedProject.setName("Updated Name");
+        updatedProject.setDescription("Updated description");
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.empty());
+
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> projectService.updateProject(adminUser, projectId, updatedProject));
+
+        assertEquals(ErrorMessages.PROJECT_NOT_FOUND, ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+    }
+
+
+    @Test
+    void shouldDeleteProject_whenValidAdminUser() {
+        Long projectId = 1L;
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+        doNothing().when(projectOutputPort).deleteProject(existingProject);
+
+        projectService.deleteProject(adminUser, projectId);
+
+        verify(projectOutputPort).deleteProject(existingProject);
+    }
+
+    @Test
+    void shouldThrowException_whenDeleteProjectWithDeveloperUser() {
+        Long projectId = 1L;
+        when(userOutputPort.existById(developerUser.getId())).thenReturn(true);
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
+                () -> projectService.deleteProject(developerUser, projectId));
+
+        assertEquals(ErrorMessages.ACCESS_DENIED, ex.getMessage());
+        verify(projectOutputPort, never()).deleteProject(any());
+    }
+
+    @Test
+    void shouldThrowException_whenDeleteProjectWithNullProjectId() {
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> projectService.deleteProject(adminUser, null));
+
+        assertEquals("Project ID is required", ex.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+    }
+
+    @Test
+    void shouldThrowException_whenDeleteProjectWithNonExistentProject() {
+        Long projectId = 999L;
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.empty());
+
+        ProjectNotFoundException ex = assertThrows(ProjectNotFoundException.class,
+                () -> projectService.deleteProject(adminUser, projectId));
+
+        assertEquals(ErrorMessages.PROJECT_NOT_FOUND, ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+    }
+
+    @Test
+    void shouldThrowException_whenDeleteProjectWithUserFromDifferentOrganization() {
+        Long projectId = 1L;
+        Organization differentOrg = new Organization();
+        differentOrg.setId(2L);
+        differentOrg.setName("Different Org");
+
+        User userFromDifferentOrg = new User();
+        userFromDifferentOrg.setId(3L);
+        userFromDifferentOrg.setEmail("other@example.com");
+        userFromDifferentOrg.setRole(Role.ADMIN);
+        userFromDifferentOrg.setOrganization(differentOrg);
+
+        when(userOutputPort.existById(userFromDifferentOrg.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
+                () -> projectService.deleteProject(userFromDifferentOrg, projectId));
+
+        assertEquals(ErrorMessages.ACCESS_DENIED, ex.getMessage());
+        verify(projectOutputPort, never()).deleteProject(any());
+    }
+
+
+    @Test
+    void shouldThrowException_whenUpdateProjectWithInvalidName() {
+
+        Long projectId = 1L;
+        Project updatedProject = new Project();
+        updatedProject.setName("");
+        updatedProject.setDescription("Valid description");
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> projectService.updateProject(adminUser, projectId, updatedProject));
+
+
+        verify(projectOutputPort, never()).saveProject(any());
+    }
+
+    @Test
+    void shouldThrowException_whenUpdateProjectWithInvalidDescription() {
+
+        Long projectId = 1L;
+        Project updatedProject = new Project();
+        updatedProject.setName("Valid Name");
+        updatedProject.setDescription("");
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> projectService.updateProject(adminUser, projectId, updatedProject));
+
+        verify(projectOutputPort, never()).saveProject(any());
+    }
+
+    @Test
+    void shouldThrowException_whenUserOrganizationIsNull() {
+        Long projectId = 1L;
+        adminUser.setOrganization(null);
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.findById(projectId)).thenReturn(Optional.of(existingProject));
+
+        OrganizationNotFoundException ex = assertThrows(OrganizationNotFoundException.class,
+                () -> projectService.getProjectById(adminUser, projectId));
+
+        assertEquals(ErrorMessages.ORGANIZATION_NOT_FOUND, ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+    }
+
+
 
 
 }
