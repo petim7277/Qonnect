@@ -107,4 +107,10 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
 
         return projectRepository.existsProjectNameInOrganizationExcludingId(name, organizationId, projectId);
     }
+    @Override
+    public Project getProjectById(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(()->new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return projectPersistenceMapper.toProject(project);
+    }
+
 }

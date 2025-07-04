@@ -20,5 +20,7 @@ public interface ProjectOutputPort {
 
     Optional<Project> findById(Long id);
 
+    Project getProjectById(Long projectId);
+
     boolean existsByNameAndOrganizationIdAndNotId(String name, Long organizationId, Long projectId);
 }

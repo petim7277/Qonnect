@@ -5,6 +5,7 @@ import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
 import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
+import com.example.qonnect.domain.exceptions.ProjectException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
@@ -26,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -222,6 +224,82 @@ class ProjectServiceTest {
         assertEquals(5, result.getSize());
 
         verify(projectOutputPort).getAllProjects(organizationId, customPageable);
+    }
+
+    @Test
+    void shouldAssignUserToProject_successfully() {
+        Long projectId = 1L;
+        Long userId = 2L;
+
+        User targetUser = new User();
+        targetUser.setId(userId);
+        targetUser.setOrganization(org);
+
+        Project targetProject = new Project();
+        targetProject.setId(projectId);
+        targetProject.setOrganizationId(org.getId());
+        targetProject.setTeamMembers(new ArrayList<>());
+
+        when(projectOutputPort.getProjectById(projectId)).thenReturn(targetProject);
+        when(userOutputPort.getUserById(userId)).thenReturn(targetUser);
+
+        projectService.assignUserToProject(projectId, userId, adminUser);
+
+        assertTrue(targetProject.getTeamMembers().contains(targetUser));
+        verify(projectOutputPort).saveProject(targetProject);
+    }
+
+    @Test
+    void shouldThrowException_whenAssigningUserWithDifferentOrg() {
+        Long projectId = 1L;
+        Long userId = 2L;
+
+        Organization otherOrg = new Organization();
+        otherOrg.setId(99L);
+
+        User targetUser = new User();
+        targetUser.setId(userId);
+        targetUser.setOrganization(otherOrg);
+
+        Project targetProject = new Project();
+        targetProject.setId(projectId);
+        targetProject.setOrganizationId(org.getId());
+        targetProject.setTeamMembers(new ArrayList<>());
+
+        when(projectOutputPort.getProjectById(projectId)).thenReturn(targetProject);
+        when(userOutputPort.getUserById(userId)).thenReturn(targetUser);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                projectService.assignUserToProject(projectId, userId, adminUser));
+    }
+
+    @Test
+    void shouldThrowException_whenAssigningAlreadyAssignedUser() {
+        Long projectId = 1L;
+        Long userId = 2L;
+
+        User targetUser = new User();
+        targetUser.setId(userId);
+        targetUser.setOrganization(org);
+
+        Project targetProject = new Project();
+        targetProject.setId(projectId);
+        targetProject.setOrganizationId(org.getId());
+        targetProject.setTeamMembers(new ArrayList<>(List.of(targetUser)));
+
+        when(projectOutputPort.getProjectById(projectId)).thenReturn(targetProject);
+        when(userOutputPort.getUserById(userId)).thenReturn(targetUser);
+
+        assertThrows(ProjectException.class, () ->
+                projectService.assignUserToProject(projectId, userId, adminUser));
+    }
+
+    @Test
+    void shouldThrowException_whenAssigningUserAsNonAdmin() {
+        adminUser.setRole(Role.DEVELOPER);
+
+        assertThrows(AccessDeniedException.class, () ->
+                projectService.assignUserToProject(1L, 2L, adminUser));
     }
 
 

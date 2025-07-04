@@ -32,9 +32,11 @@ public class ProjectEntity {
     @ManyToMany
     @JoinTable(
             name = "project_users",
-            joinColumns = @JoinColumn(name = "project_id")
+            joinColumns = @JoinColumn(name = "project_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private List<UserEntity> teamMembers;
+
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<BugEntity> bugs;

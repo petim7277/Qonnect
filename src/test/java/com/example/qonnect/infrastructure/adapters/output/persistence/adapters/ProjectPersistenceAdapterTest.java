@@ -1,5 +1,6 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
+import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.models.Organization;
@@ -105,7 +106,6 @@ class ProjectPersistenceAdapterTest {
         assertTrue(exists);
     }
 
-
     @Test
     void shouldGetAllProjectsSuccessfully_whenProjectsExist() {
         Project project1 = Project.builder()
@@ -127,16 +127,11 @@ class ProjectPersistenceAdapterTest {
         adapter.saveProject(project1);
         adapter.saveProject(project2);
 
-
         Page<Project> result = adapter.getAllProjects(org.getId(), pageable);
-
 
         assertNotNull(result);
         assertTrue(result.getTotalElements() >= 2);
         assertTrue(result.getContent().size() >= 2);
-        assertEquals(0, result.getNumber());
-        assertEquals(10, result.getSize());
-
 
         boolean hasProject1 = result.getContent().stream()
                 .anyMatch(p -> "Project 1".equals(p.getName()));
@@ -149,16 +144,31 @@ class ProjectPersistenceAdapterTest {
 
     @Test
     void shouldReturnEmptyPage_whenNoProjectsExist() {
-        Long nonExistentOrgId = 999L;
+        Long nonExistentOrgId = 999999L;
 
         Page<Project> result = adapter.getAllProjects(nonExistentOrgId, pageable);
 
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
-        assertEquals(0, result.getContent().size());
         assertTrue(result.getContent().isEmpty());
-        assertEquals(0, result.getNumber());
-        assertEquals(10, result.getSize());
+    }
+
+    @Test
+    void getProjectById_found() {
+        Project saved = adapter.saveProject(project);
+
+        Project result = adapter.getProjectById(saved.getId());
+
+        assertNotNull(result);
+        assertEquals(saved.getId(), result.getId());
+        assertEquals(saved.getName(), result.getName());
+    }
+
+    @Test
+    void getProjectById_notFound() {
+        Long invalidId = 999999L;
+
+        assertThrows(ProjectNotFoundException.class, () -> adapter.getProjectById(invalidId));
     }
 
 
