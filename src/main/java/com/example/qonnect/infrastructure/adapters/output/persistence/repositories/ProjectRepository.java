@@ -22,4 +22,11 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, Long> {
                                             @Param("orgId") Long organizationId);
 
     Page<ProjectEntity> findByOrganizationId(Long organizationId, Pageable pageable);
+
+
+
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM ProjectEntity p WHERE p.name = :name AND p.organization.id = :organizationId AND p.id != :projectId")
+    boolean existsProjectNameInOrganizationExcludingId(@Param("name") String name, @Param("organizationId") Long organizationId, @Param("projectId") Long projectId);
+
+
 }

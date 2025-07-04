@@ -8,13 +8,14 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ProjectPersistenceMapper {
 
+    @Mapping(source = "organization.id", target = "organizationId")
     @Mapping(target = "teamMembers", ignore = true)
-    @Mapping(target = "organization.users", ignore = true)
     @Mapping(target = "bugs", ignore = true)
     Project toProject(ProjectEntity project);
 
+    @Mapping(target = "organization.id", source = "organizationId")
     @Mapping(target = "teamMembers", ignore = true)
-    @Mapping(target = "organization.users", ignore = true)
     @Mapping(target = "bugs", ignore = true)
     ProjectEntity toProjectEntity(Project project);
 }
+

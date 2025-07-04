@@ -3,6 +3,7 @@ package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 import com.example.qonnect.application.input.ProjectUseCase;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.UpdateProjectRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectCreationResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.ProjectRestMapper;
@@ -41,34 +42,74 @@ public class ProjectController {
             @Valid @RequestBody com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CreateProjectRequest request
     ) {
         Project project = projectRestMapper.toDomain(request);
-
         Project created = projectUseCase.createProject(user, project);
         return ResponseEntity.ok(projectRestMapper.toResponse(created));
     }
 
-
+    @Operation(summary = "Get All Projects", description = "Retrieve all projects for the user's organization with pagination.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Projects retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Organization not found")
+    })
     @GetMapping()
     public ResponseEntity<Page<ProjectResponse>> getAllProjects(
             @AuthenticationPrincipal User user,
-            @RequestParam(defaultValue = "0",name = "page") int page,
-            @RequestParam(defaultValue = "10",name = "size") int size
-            ) {
-
-
-//        if (page < 0) {
-//            page = 0;
-//        }
-//        if (size <= 0 || size > 100) {
-//            size = 10;
-//        }
-
-//        Sort sort = sortDirection.equalsIgnoreCase("desc")
-//                ? Sort.by(sortBy).descending()
-//                : Sort.by(sortBy).ascending();
-
+            @RequestParam(defaultValue = "0", name = "page") int page,
+            @RequestParam(defaultValue = "10", name = "size") int size
+    ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Project> projects = projectUseCase.getAllProjects(user.getOrganization().getId(), pageable);
         Page<ProjectResponse> responses = projects.map(projectRestMapper::toProjectResponse);
         return ResponseEntity.ok(responses);
+    }
+
+    @Operation(summary = "Get Project by ID", description = "Retrieve a specific project by its ID. User must belong to the project's organization.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Project retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Project not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied (user doesn't belong to project's organization)")
+    })
+    @GetMapping("/{projectId}")
+    public ResponseEntity<ProjectResponse> getProjectById(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long projectId
+    ) {
+        Project project = projectUseCase.getProjectById(user, projectId);
+        ProjectResponse response = projectRestMapper.toProjectResponse(project);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Update Project", description = "Update an existing project. Only admins can update projects in their organization.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Project updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Project not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied (not an admin or user doesn't belong to project's organization)"),
+            @ApiResponse(responseCode = "409", description = "Project name already exists")
+    })
+    @PatchMapping("/{projectId}")
+    public ResponseEntity<ProjectResponse> updateProject(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long projectId,
+            @Valid @RequestBody UpdateProjectRequest request
+    ) {
+        Project updatedProject = projectRestMapper.toProject(request);
+        Project project = projectUseCase.updateProject(user, projectId, updatedProject);
+        ProjectResponse response = projectRestMapper.toProjectResponse(project);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Delete Project", description = "Delete a project. Only admins can delete projects in their organization.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Project deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Project not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied (not an admin or user doesn't belong to project's organization)")
+    })
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<Void> deleteProject(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long projectId
+    ) {
+        projectUseCase.deleteProject(user, projectId);
+        return ResponseEntity.ok().build();
     }
 }

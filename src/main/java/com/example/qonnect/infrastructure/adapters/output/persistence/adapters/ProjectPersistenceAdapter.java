@@ -2,14 +2,11 @@ package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
-import com.example.qonnect.domain.models.Organization;
+import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.models.Project;
-import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OrganizationEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.ProjectEntity;
-import com.example.qonnect.infrastructure.adapters.output.persistence.entities.UserEntity;
-import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.OrganizationPersistenceMapper;
 import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.ProjectPersistenceMapper;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OrganizationRepository;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.ProjectRepository;
@@ -20,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -29,17 +28,20 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
     private final ProjectRepository projectRepository;
     private final OrganizationRepository organizationRepository;
 
-
     @Override
     public Project saveProject(Project project) {
+        if (project.getId() != null && !projectRepository.existsById(project.getId())) {
+            throw new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+
         OrganizationEntity orgEntity = organizationRepository.findById(project.getOrganizationId())
                 .orElseThrow(() -> new OrganizationNotFoundException(ErrorMessages.ORGANIZATION_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         ProjectEntity entity = projectPersistenceMapper.toProjectEntity(project);
-
         entity.setOrganization(orgEntity);
 
         entity = projectRepository.save(entity);
+
         return projectPersistenceMapper.toProject(entity);
     }
 
@@ -47,6 +49,21 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
     @Override
     public boolean existById(Long id) {
         return projectRepository.existsById(id);
+    }
+
+    @Override
+    public void deleteProject(Project project) {
+        if (project == null || project.getId() == null) {
+            throw new ProjectNotFoundException(ErrorMessages.PROJECT_ID_IS_REQUIRED, HttpStatus.BAD_REQUEST);
+        }
+        Long projectId = project.getId();
+        log.info("Deleting project with ID: {} and name: {}", projectId, project.getName());
+
+        if (!projectRepository.existsById(projectId)) {
+            throw new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        projectRepository.deleteById(projectId);
+        log.debug("Project with ID: {} successfully deleted", projectId);
     }
 
     @Override
@@ -67,4 +84,27 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
         return projects;
     }
 
+    @Override
+    public Optional<Project> findById(Long id) {
+        log.info("Finding project by ID: {}", id);
+
+        Optional<ProjectEntity> projectEntity = projectRepository.findById(id);
+
+        if (projectEntity.isPresent()) {
+            Project project = projectPersistenceMapper.toProject(projectEntity.get());
+            log.info("Found project: {} with ID: {}", project.getName(), id);
+            return Optional.of(project);
+        } else {
+            log.info("No project found with ID: {}", id);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public boolean existsByNameAndOrganizationIdAndNotId(String name, Long organizationId, Long projectId) {
+        log.info("Checking if project name '{}' exists in organization {} excluding project ID: {}",
+                name, organizationId, projectId);
+
+        return projectRepository.existsProjectNameInOrganizationExcludingId(name, organizationId, projectId);
+    }
 }
