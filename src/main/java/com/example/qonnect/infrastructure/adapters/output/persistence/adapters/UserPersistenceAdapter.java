@@ -79,4 +79,10 @@ public class UserPersistenceAdapter implements UserOutputPort {
         return userPersistenceMapper.toUser(entity.get());
     }
 
+    @Override
+    public User getUserById(Long userId) {
+        UserEntity entity = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return userPersistenceMapper.toUser(entity);
+    }
+
 }

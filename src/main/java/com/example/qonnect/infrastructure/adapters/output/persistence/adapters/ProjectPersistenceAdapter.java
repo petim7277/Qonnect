@@ -1,9 +1,11 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
 import com.example.qonnect.application.output.ProjectOutputPort;
+import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OrganizationEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.ProjectEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.UserEntity;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -66,6 +69,12 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
         log.info("Mapped {} project entities to domain objects", projects.getNumberOfElements());
 
         return projects;
+    }
+
+    @Override
+    public Project getProjectById(Long projectId) {
+        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(()->new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return projectPersistenceMapper.toProject(project);
     }
 
 }

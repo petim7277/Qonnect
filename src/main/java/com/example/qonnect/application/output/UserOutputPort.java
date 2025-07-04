@@ -14,4 +14,6 @@ public interface UserOutputPort {
 
     User getUserByInviteToken(String inviteToken);
 
+    User getUserById(Long userId);
+
 }

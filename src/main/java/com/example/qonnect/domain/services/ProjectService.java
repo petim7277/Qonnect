@@ -1,10 +1,12 @@
 package com.example.qonnect.domain.services;
 
+import com.example.qonnect.application.input.AssignUserToProjectUseCase;
 import com.example.qonnect.application.input.ProjectUseCase;
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
+import com.example.qonnect.domain.exceptions.ProjectException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.enums.Role;
@@ -19,13 +21,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 import static com.example.qonnect.domain.validators.InputValidator.validateName;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class ProjectService implements ProjectUseCase {
+public class ProjectService implements ProjectUseCase, AssignUserToProjectUseCase {
 
     private final ProjectOutputPort projectOutputPort;
     private final UserOutputPort userOutputPort;
@@ -70,4 +73,28 @@ public class ProjectService implements ProjectUseCase {
         return projectOutputPort.getAllProjects(organizationId,pageable);
     }
 
+    @Override
+    public void assignUserToProject(Long projectId, Long userId, User performingUser) {
+        if (!Role.ADMIN.equals(performingUser.getRole())) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
+
+        Project project = projectOutputPort.getProjectById(projectId);
+        User userToAssign = userOutputPort.getUserById(userId);
+
+        if (!project.getOrganizationId().equals(userToAssign.getOrganization().getId())) {
+            throw new IllegalArgumentException("User and project do not belong to the same organization");
+        }
+
+        if (project.getTeamMembers() == null) {
+            project.setTeamMembers(new ArrayList<>());
+        }
+
+        if (project.getTeamMembers().contains(userToAssign)) {
+            throw new ProjectException(ErrorMessages.USER_ALREADY_ASSIGNED_TO_PROJECT, HttpStatus.CONFLICT);
+        }
+
+        project.getTeamMembers().add(userToAssign);
+        projectOutputPort.saveProject(project);
+    }
 }

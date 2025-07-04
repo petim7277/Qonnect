@@ -14,4 +14,7 @@ public interface ProjectOutputPort {
 
 
     Page<Project> getAllProjects(Long organizationId, Pageable pageable);
+
+    Project getProjectById(Long projectId);
+
 }

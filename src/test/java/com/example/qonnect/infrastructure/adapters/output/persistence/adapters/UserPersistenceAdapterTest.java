@@ -1,19 +1,22 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
+import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
+import com.example.qonnect.domain.models.Organization;
+import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OrganizationEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.UserEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.UserPersistenceMapper;
+import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OrganizationRepository;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 
 @SpringBootTest
 @Transactional
@@ -29,6 +32,7 @@ class UserPersistenceAdapterTest {
     private UserPersistenceAdapter userPersistenceAdapter;
 
     private User testUser;
+    private UserEntity savedEntity;
 
     @BeforeEach
     void setup() {
@@ -38,9 +42,8 @@ class UserPersistenceAdapterTest {
         userEntity.setEmail("test@example.com");
         userEntity.setRole(Role.QA_ENGINEER);
 
-        userRepository.save(userEntity);
-
-        testUser = userPersistenceMapper.toUser(userEntity);
+        savedEntity = userRepository.save(userEntity);
+        testUser = userPersistenceMapper.toUser(savedEntity);
     }
 
     @Test
@@ -70,6 +73,20 @@ class UserPersistenceAdapterTest {
     void userExistsByEmail_shouldReturnTrue() {
         assertTrue(userPersistenceAdapter.userExistsByEmail(testUser.getEmail()));
     }
+
+    @Test
+    void getUserById_shouldReturnUser() {
+        User result = userPersistenceAdapter.getUserById(savedEntity.getId());
+
+        assertNotNull(result);
+        assertEquals(savedEntity.getId(), result.getId());
+        assertEquals("test@example.com", result.getEmail());
+    }
+
+    @Test
+    void getUserById_shouldThrowIfNotFound() {
+        Long invalidId = 999999L;
+
+        assertThrows(RuntimeException.class, () -> userPersistenceAdapter.getUserById(invalidId));
+    }
 }
-
-

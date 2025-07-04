@@ -9,9 +9,12 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface OrganizationPersistenceMapper {
 
-
+    @Mapping(target = "users", ignore = true)
+    @Mapping(target = "projects", ignore = true)
     Organization toOrganization(OrganizationEntity organizationEntity);
 
+    @Mapping(target = "users", ignore = true)
+    @Mapping(target = "projects", ignore = true)
     OrganizationEntity toOrganizationEntity(Organization organization);
-
 }
+
