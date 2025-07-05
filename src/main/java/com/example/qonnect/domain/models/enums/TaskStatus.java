@@ -2,7 +2,7 @@ package com.example.qonnect.domain.models.enums;
 
 
 public enum TaskStatus {
-    TODO,
+    PENDING,
     IN_PROGRESS,
     DONE
 }

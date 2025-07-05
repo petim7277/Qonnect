@@ -41,6 +41,10 @@ public class BugEntity {
     private UserEntity createdBy;
 
     @ManyToOne
+    @JoinColumn(name = "task_id")
+    private TaskEntity task;
+
+    @ManyToOne
     @JoinColumn(name = "assigned_to")
     private UserEntity assignedTo;
 
