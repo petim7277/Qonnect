@@ -3,6 +3,7 @@ package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 
 import com.example.qonnect.application.input.InviteUserUseCase;
 import com.example.qonnect.application.input.RegisterOrganizationAdminUseCase;
+import com.example.qonnect.application.input.RemoveUserFromAnOrganizationUseCase;
 import com.example.qonnect.domain.exceptions.IdentityManagementException;
 import com.example.qonnect.domain.exceptions.OrganizationAlreadyExistsException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
@@ -29,6 +30,8 @@ public class OrganizationController {
 
     private final OrganizationRestMapper organizationRestMapper;
     private final InviteUserUseCase inviteUserUseCase;
+
+    private final RemoveUserFromAnOrganizationUseCase removeUserFromAnOrganizationUserCase;
 
 
     @PostMapping("/organization")
@@ -58,6 +61,12 @@ public class OrganizationController {
         return ResponseEntity.ok("Invitation sent successfully.");
     }
 
+    @DeleteMapping
+    public ResponseEntity<String> removeUserFromAnOrganization( @AuthenticationPrincipal User user,Long userToBeRemovedId, Long organizationId) {
+        removeUserFromAnOrganizationUserCase.removeUserFromAnOrganization(user,userToBeRemovedId,organizationId);
+        return ResponseEntity.ok(" Successfully");
+
+    }
 
 
 

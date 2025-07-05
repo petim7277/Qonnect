@@ -2,9 +2,11 @@ package com.example.qonnect.domain.services;
 
 import com.example.qonnect.application.input.InviteUserUseCase;
 import com.example.qonnect.application.input.RegisterOrganizationAdminUseCase;
+import com.example.qonnect.application.input.RemoveUserFromAnOrganizationUseCase;
 import com.example.qonnect.application.output.*;
 import com.example.qonnect.domain.exceptions.OrganizationAlreadyExistsException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
+import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.enums.OtpType;
 import com.example.qonnect.domain.models.enums.Role;
@@ -21,11 +23,13 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static com.example.qonnect.domain.validators.GeneralValidator.validateUserExists;
+import static com.example.qonnect.domain.validators.GeneralValidator.validateUserIsAdmin;
 import static com.example.qonnect.domain.validators.InputValidator.*;
 
 @Service
 @RequiredArgsConstructor
-public class OrganizationService implements RegisterOrganizationAdminUseCase, InviteUserUseCase {
+public class OrganizationService implements RegisterOrganizationAdminUseCase, InviteUserUseCase, RemoveUserFromAnOrganizationUseCase {
 
     private final UserOutputPort userOutputPort;
     private final OrganizationOutputPort organizationOutputPort;
@@ -119,5 +123,19 @@ public class OrganizationService implements RegisterOrganizationAdminUseCase, In
     }
 
 
+    @Override
+    public void removeUserFromAnOrganization(User user, Long userToBeRemovedId, Long organizationId) {
+        validateUserExists(user);
+        if (!userOutputPort.existById(user.getId())) {
+            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        validateUserIsAdmin(user);
+
+        Organization organization = organizationOutputPort.getOrganizationById(organizationId);
+        User userToBeRemoved = userOutputPort.getUserById(userToBeRemovedId);
+            if(organization.getUsers().stream().map(User::getId).anyMatch(user.getId()::equals) && organization.getUsers().stream().map(User::getId).anyMatch(userToBeRemoved.getId()::equals )){
+                organizationOutputPort.removeUserFromOrganization(userToBeRemoved);
+            }
+    }
 }
 

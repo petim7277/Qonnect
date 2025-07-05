@@ -21,6 +21,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -211,6 +212,68 @@ class OrganizationServiceTest {
 
     static Stream<String> invalidInputs() {
         return Stream.of(null, "", " ");
+    }
+
+    @Test
+    void shouldRemoveUserFromOrganizationSuccessfully() {
+        User admin = new User();
+        admin.setId(1L);
+        admin.setRole(Role.ADMIN);
+
+        User userToRemove = new User();
+        userToRemove.setId(2L);
+
+        Organization organization = new Organization();
+        organization.setId(10L);
+        organization.setUsers(List.of(admin, userToRemove));
+        when(userOutputPort.existById(admin.getId())).thenReturn(true);
+
+        when(organizationOutputPort.getOrganizationById(organization.getId()))
+                .thenReturn(organization);
+        when(userOutputPort.getUserById(userToRemove.getId()))
+                .thenReturn(userToRemove);
+
+
+        registrationService.removeUserFromAnOrganization(admin, userToRemove.getId(), organization.getId());
+
+        verify(organizationOutputPort).removeUserFromOrganization(userToRemove);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedIfNotAdmin() {
+        User nonAdmin = new User();
+        nonAdmin.setId(1L);
+        nonAdmin.setRole(Role.QA_ENGINEER);
+
+        when(userOutputPort.existById(nonAdmin.getId())).thenReturn(true);
+
+
+        assertThrows(AccessDeniedException.class, () -> {
+            registrationService.removeUserFromAnOrganization(nonAdmin, 2L, 10L);
+        });
+    }
+
+    @Test
+    void shouldNotRemoveIfUsersNotInSameOrganization() {
+        User admin = new User();
+        admin.setId(1L);
+        admin.setRole(Role.ADMIN);
+
+        User outsider = new User();
+        outsider.setId(3L);
+        Organization organization = new Organization();
+        organization.setId(10L);
+        organization.setUsers(List.of(admin));
+        when(userOutputPort.existById(admin.getId())).thenReturn(true);
+
+        when(organizationOutputPort.getOrganizationById(organization.getId()))
+                .thenReturn(organization);
+        when(userOutputPort.getUserById(outsider.getId()))
+                .thenReturn(outsider);
+
+        registrationService.removeUserFromAnOrganization(admin, outsider.getId(), organization.getId());
+
+        verify(organizationOutputPort, never()).removeUserFromOrganization(any());
     }
 
 

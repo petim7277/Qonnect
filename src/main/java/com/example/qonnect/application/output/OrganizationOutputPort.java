@@ -1,6 +1,7 @@
 package com.example.qonnect.application.output;
 
 import com.example.qonnect.domain.models.Organization;
+import com.example.qonnect.domain.models.User;
 
 public interface OrganizationOutputPort {
 
@@ -11,4 +12,7 @@ public interface OrganizationOutputPort {
 
     boolean existsByName(String name);
 
+    Organization getOrganizationById(Long id);
+
+    void removeUserFromOrganization(User userToBeRemoved);
 }
