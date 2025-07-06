@@ -38,9 +38,7 @@ public class TaskEntity {
 
     private LocalDateTime updatedAt;
 
-    @ManyToOne
-    @JoinColumn(name = "project_id")
-    private ProjectEntity project;
+    private Long projectId;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BugEntity> bugs;

@@ -10,4 +10,9 @@ public interface TaskOutputPort {
 
     boolean existsByTitleAndProjectId(String title, Long projectId);
 
+
+    void deleteTaskById(Long taskId);
+
+    Task getTaskById(Long taskId);
+
 }

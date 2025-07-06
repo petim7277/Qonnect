@@ -4,16 +4,15 @@ import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.TaskOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.TaskAlreadyExistException;
+import com.example.qonnect.domain.exceptions.TaskNotFoundException;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.Task;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.enums.TaskStatus;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
-
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -31,8 +30,8 @@ class TaskServiceTest {
 
     @BeforeEach
     void setup() {
-        userOutputPort = mock(UserOutputPort.class);
-        taskOutputPort = mock(TaskOutputPort.class);
+        userOutputPort    = mock(UserOutputPort.class);
+        taskOutputPort    = mock(TaskOutputPort.class);
         projectOutputPort = mock(ProjectOutputPort.class);
 
         taskService = new TaskService( taskOutputPort,userOutputPort, projectOutputPort);
@@ -55,20 +54,21 @@ class TaskServiceTest {
                 .build();
     }
 
+
     @Test
     void testCreateTask_AsAdmin_Success() {
         Task task = Task.builder()
                 .title("New Task")
                 .description("Task Description")
                 .status(TaskStatus.PENDING)
-                .project(testProject)
+                .projectId(testProject.getId())
                 .build();
 
         when(userOutputPort.getUserByEmail(adminUser.getEmail())).thenReturn(adminUser);
         when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
         when(taskOutputPort.existsByTitleAndProjectId(task.getTitle(), testProject.getId())).thenReturn(false);
-        when(taskOutputPort.saveTask(any(Task.class))).thenAnswer(invocation -> {
-            Task saved = invocation.getArgument(0);
+        when(taskOutputPort.saveTask(any(Task.class))).thenAnswer(inv -> {
+            Task saved = inv.getArgument(0);
             saved.setId(100L);
             return saved;
         });
@@ -85,14 +85,14 @@ class TaskServiceTest {
         Task task = Task.builder()
                 .title("Task")
                 .description("desc")
-                .project(testProject)
+                .projectId(testProject.getId())
                 .build();
 
         when(userOutputPort.getUserByEmail(regularUser.getEmail())).thenReturn(regularUser);
 
-        assertThrows(AccessDeniedException.class, () -> {
-            taskService.createTask(regularUser, task);
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                taskService.createTask(regularUser, task)
+        );
     }
 
     @Test
@@ -100,15 +100,71 @@ class TaskServiceTest {
         Task task = Task.builder()
                 .title("Duplicate")
                 .description("desc")
-                .project(testProject)
+                .projectId(testProject.getId())
                 .build();
 
         when(userOutputPort.getUserByEmail(adminUser.getEmail())).thenReturn(adminUser);
         when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
         when(taskOutputPort.existsByTitleAndProjectId(task.getTitle(), testProject.getId())).thenReturn(true);
 
-        assertThrows(TaskAlreadyExistException.class, () -> {
-            taskService.createTask(adminUser, task);
-        });
+        assertThrows(TaskAlreadyExistException.class, () ->
+                taskService.createTask(adminUser, task)
+        );
+    }
+
+
+    @Test
+    void deleteTask_AsAdmin_Success() {
+        long taskId = 100L;
+        Task task = Task.builder()
+                .id(taskId)
+                .title("To‑Delete")
+                .projectId(testProject.getId())
+                .build();
+
+        when(userOutputPort.getUserByEmail(adminUser.getEmail())).thenReturn(adminUser);
+        when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
+        when(taskOutputPort.getTaskById(taskId)).thenReturn(task);
+
+        assertDoesNotThrow(() ->
+                taskService.deleteTask(adminUser, testProject.getId(), taskId)
+        );
+
+        verify(taskOutputPort).deleteTaskById(taskId);
+    }
+
+    @Test
+    void deleteTask_AsNonAdmin_ThrowsAccessDenied() {
+        long taskId = 101L;
+
+        when(userOutputPort.getUserByEmail(regularUser.getEmail())).thenReturn(regularUser);
+
+        assertThrows(AccessDeniedException.class, () ->
+                taskService.deleteTask(regularUser, testProject.getId(), taskId)
+        );
+
+        verify(taskOutputPort, never()).deleteTaskById(anyLong());
+    }
+
+    @Test
+    void deleteTask_TaskNotInProject_ThrowsNotFound() {
+        long taskId = 102L;
+        Project otherProject = Project.builder().id(99L).name("Other").build();
+
+        Task task = Task.builder()
+                .id(taskId)
+                .title("Wrong Project")
+                .projectId(otherProject.getId())
+                .build();
+
+        when(userOutputPort.getUserByEmail(adminUser.getEmail())).thenReturn(adminUser);
+        when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
+        when(taskOutputPort.getTaskById(taskId)).thenReturn(task);
+
+        assertThrows(TaskNotFoundException.class, () ->
+                taskService.deleteTask(adminUser, testProject.getId(), taskId)
+        );
+
+        verify(taskOutputPort, never()).deleteTaskById(anyLong());
     }
 }

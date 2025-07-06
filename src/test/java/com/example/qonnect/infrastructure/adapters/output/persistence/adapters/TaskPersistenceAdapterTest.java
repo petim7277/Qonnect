@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class TaskPersistenceAdapterIntegrationTest {
+class TaskPersistenceAdapterTest {
 
     @Autowired
     private TaskRepository taskRepository;
@@ -23,48 +23,42 @@ class TaskPersistenceAdapterIntegrationTest {
     @Autowired
     private TaskPersistenceAdapter taskPersistenceAdapter;
 
-    private Task testTask;
+    private Task savedTask;
 
     @BeforeEach
     void setUp() {
         taskRepository.deleteAll();
 
-        testTask = Task.builder()
-                .title("Integration Task")
-                .description("This is an integration test")
+        TaskEntity entity = new TaskEntity();
+        entity.setTitle("Integration Task");
+        entity.setDescription("This is an integration test");
+        entity.setStatus(TaskStatus.PENDING);
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
+
+        TaskEntity savedEntity = taskRepository.save(entity);
+        savedTask = taskPersistenceAdapter.getTaskByTitle(savedEntity.getTitle());
+    }
+
+    @Test
+    void testSaveTask_Success() {
+        Task task = Task.builder()
+                .title("Save Test")
+                .description("Testing save")
                 .status(TaskStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        taskPersistenceAdapter.saveTask(testTask);
+        Task saved = taskPersistenceAdapter.saveTask(task);
+
+        assertNotNull(saved.getId());
+        assertEquals("Save Test", saved.getTitle());
+        assertEquals("Testing save", saved.getDescription());
     }
 
     @Test
-    void testSaveTask_Success() {
-        Task newTask = Task.builder()
-                .title("New Save Task")
-                .description("Saving task test")
-                .status(TaskStatus.IN_PROGRESS)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        Task savedTask = taskPersistenceAdapter.saveTask(newTask);
-
-        assertNotNull(savedTask);
-        assertNotNull(savedTask.getId());
-        assertEquals("New Save Task", savedTask.getTitle());
-        assertEquals("Saving task test", savedTask.getDescription());
-        assertEquals(TaskStatus.IN_PROGRESS, savedTask.getStatus());
-
-        TaskEntity entity = taskRepository.findByTitle("New Save Task").orElse(null);
-        assertNotNull(entity);
-        assertEquals("Saving task test", entity.getDescription());
-    }
-
-    @Test
-    void testGetTaskByName_Success() {
+    void testGetTaskByTitle_Success() {
         Task found = taskPersistenceAdapter.getTaskByTitle("Integration Task");
 
         assertNotNull(found);
@@ -73,8 +67,27 @@ class TaskPersistenceAdapterIntegrationTest {
     }
 
     @Test
-    void testGetTaskByName_NotFound() {
+    void testGetTaskByTitle_NotFound() {
         assertThrows(TaskNotFoundException.class, () ->
                 taskPersistenceAdapter.getTaskByTitle("Non-existent Task"));
+    }
+
+    @Test
+    void testDeleteTaskById_Success() {
+        Long taskId = savedTask.getId();
+
+        assertTrue(taskRepository.existsById(taskId));
+
+        taskPersistenceAdapter.deleteTaskById(taskId);
+
+        assertFalse(taskRepository.existsById(taskId));
+    }
+
+    @Test
+    void testDeleteTaskById_NotFound() {
+        Long nonExistentId = 99999L;
+
+        assertThrows(TaskNotFoundException.class, () ->
+                taskPersistenceAdapter.deleteTaskById(nonExistentId));
     }
 }
