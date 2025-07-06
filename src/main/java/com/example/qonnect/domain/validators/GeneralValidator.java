@@ -21,8 +21,6 @@ public class GeneralValidator {
         if (user == null || user.getId() == null) {
             throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
-
-
     }
 
     public static void validateUserIsAdmin(User user) {

@@ -132,7 +132,7 @@ class OrganizationPersistenceAdapterTest {
     @Test
     void shouldRemoveUserFromOrganization() {
         assertEquals(organization.getId(), user.getOrganization().getId());
-        adapter.removeUserFromOrganization(user);
+        adapter.removeUserFromOrganization(user,organization);
         User updated = userAdapter.getUserById(user.getId());
         assertNull(updated.getOrganization());
     }

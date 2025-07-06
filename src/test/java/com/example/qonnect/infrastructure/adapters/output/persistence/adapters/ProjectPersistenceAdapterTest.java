@@ -23,6 +23,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -344,4 +346,29 @@ class ProjectPersistenceAdapterTest {
         assertEquals(ErrorMessages.ORGANIZATION_NOT_FOUND, ex.getMessage());
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
     }
+
+
+    @Test
+    void shouldRemoveUserFromProjectSuccessfully() {
+        Project savedProject = adapter.saveProject(project);
+
+        User user1 = new User();
+        user1.setId(100L);
+        user1.setEmail("user1@example.com");
+
+        User user2 = new User();
+        user2.setId(101L);
+        user2.setEmail("user2@example.com");
+
+        savedProject.setTeamMembers(new ArrayList<>(List.of(user1, user2)));
+
+        adapter.removeUserFromProject(user1, savedProject);
+
+        Project updatedProject = adapter.getProjectById(savedProject.getId());
+
+        assertNotNull(updatedProject);
+        assertFalse(updatedProject.getTeamMembers().stream()
+                .anyMatch(u -> u.getId().equals(user1.getId())));
+    }
+
 }

@@ -1,10 +1,12 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.mapper;
 
 import com.example.qonnect.domain.models.Project;
+import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CreateProjectRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.UpdateProjectRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectCreationResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectResponse;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.UserResponse;
 import jakarta.validation.Valid;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -22,4 +24,5 @@ public interface ProjectRestMapper {
     ProjectResponse toProjectResponse(Project project);
 
     Project toProject(@Valid UpdateProjectRequest request);
+    UserResponse toUserResponse(User user);
 }

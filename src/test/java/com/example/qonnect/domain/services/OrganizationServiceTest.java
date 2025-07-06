@@ -6,6 +6,7 @@ import com.example.qonnect.application.output.OrganizationOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationAlreadyExistsException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
+import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.enums.OtpType;
 import com.example.qonnect.domain.models.enums.Role;
@@ -18,10 +19,16 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,6 +62,7 @@ class OrganizationServiceTest {
         );
 
         user = new User();
+        user.setId(1L);
         user.setEmail("praise@example.com");
         user.setFirstName("Praise");
         user.setLastName("Oyewole");
@@ -236,7 +244,7 @@ class OrganizationServiceTest {
 
         registrationService.removeUserFromAnOrganization(admin, userToRemove.getId(), organization.getId());
 
-        verify(organizationOutputPort).removeUserFromOrganization(userToRemove);
+        verify(organizationOutputPort).removeUserFromOrganization(userToRemove,organization);
     }
 
     @Test
@@ -273,8 +281,52 @@ class OrganizationServiceTest {
 
         registrationService.removeUserFromAnOrganization(admin, outsider.getId(), organization.getId());
 
-        verify(organizationOutputPort, never()).removeUserFromOrganization(any());
+        verify(organizationOutputPort, never()).removeUserFromOrganization(any(),any());
     }
+
+
+    @Test
+    void getAllUsersInOrganization_shouldReturnPageOfUsers_WhenUserIsAdminAndExists() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<User> expectedPage = new PageImpl<>(List.of(user));
+
+        user.setRole(Role.ADMIN);
+
+        when(userOutputPort.existById(user.getId())).thenReturn(true);
+        when(userOutputPort.findAllByOrganizationId(org.getId(), pageable)).thenReturn(expectedPage);
+
+        Page<User> result = registrationService.getAllUsersInOrganization(user, org.getId(), pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        assertEquals(user.getEmail(), result.getContent().get(0).getEmail());
+    }
+
+    @Test
+    void getAllUsersInOrganization_shouldThrow_WhenUserDoesNotExist() {
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(userOutputPort.existById(user.getId())).thenReturn(false);
+
+        assertThrows(UserNotFoundException.class,
+                () -> registrationService.getAllUsersInOrganization(user, org.getId(), pageable));
+
+    }
+
+    @Test
+    void getAllUsersInOrganization_shouldThrow_WhenUserIsNotAdmin() {
+        Pageable pageable = PageRequest.of(0, 10);
+        user.setRole(Role.DEVELOPER);
+
+        when(userOutputPort.existById(user.getId())).thenReturn(true);
+
+        assertThrows(AccessDeniedException.class,
+                () -> registrationService.getAllUsersInOrganization(user, org.getId(), pageable));
+
+    }
+
+
+
 
 
 

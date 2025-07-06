@@ -12,6 +12,8 @@ import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.Or
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -64,16 +66,18 @@ public class OrganizationPersistenceAdapter implements OrganizationOutputPort {
     }
 
     @Override
-    public void removeUserFromOrganization(User userToBeRemoved) {
-        OrganizationEntity organization = organizationPersistenceMapper.toOrganizationEntity(userToBeRemoved.getOrganization());
+    public void removeUserFromOrganization(User userToBeRemoved, Organization organization) {
         if (organization.getUsers() == null) {
             organization.setUsers(new ArrayList<>());
         }
         organization.getUsers().removeIf(u -> u.getId().equals(userToBeRemoved.getId()));
         userToBeRemoved.setOrganization(null);
         userOutputPort.saveUser(userToBeRemoved);
-        organizationRepository.save(organization);
+        organizationRepository.save(organizationPersistenceMapper.toOrganizationEntity(organization));
     }
+
+
+
 
 
 }
