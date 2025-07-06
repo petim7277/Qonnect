@@ -20,6 +20,6 @@ public class Task {
     private LocalDateTime dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Project project;
+    private Long projectId;
     private List<Bug> bugs;
 }

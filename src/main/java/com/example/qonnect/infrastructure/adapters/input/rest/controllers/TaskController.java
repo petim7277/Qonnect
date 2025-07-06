@@ -1,6 +1,7 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 
 import com.example.qonnect.application.input.CreateTaskUseCase;
+import com.example.qonnect.application.input.DeleteTaskUseCase;
 import com.example.qonnect.domain.models.Task;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CreateTaskRequest;
@@ -22,7 +23,7 @@ public class TaskController {
 
     private final CreateTaskUseCase createTaskUseCase;
     private final TaskRestMapper taskRestMapper;
-
+    private final DeleteTaskUseCase deleteTaskUseCase;
 
     @PostMapping("/task")
     public ResponseEntity<TaskResponse> createTask(
@@ -34,4 +35,16 @@ public class TaskController {
         TaskResponse response = taskRestMapper.toTaskResponse(created);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
+
+    @DeleteMapping("/projects/{projectId}/tasks/{taskId}")
+    public ResponseEntity<String> deleteTask(
+            @AuthenticationPrincipal User user,
+            @PathVariable ("projectId") Long projectId,
+            @PathVariable ("taskId") Long taskId
+    ) {
+        deleteTaskUseCase.deleteTask(user, projectId, taskId);
+        return ResponseEntity.ok("Task deleted successfully");
+    }
+
 }

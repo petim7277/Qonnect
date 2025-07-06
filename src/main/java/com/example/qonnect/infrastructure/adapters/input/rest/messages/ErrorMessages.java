@@ -33,6 +33,7 @@ public class ErrorMessages {
     public static final String USER_ALREADY_ASSIGNED_TO_PROJECT ="User is already assigned to the project" ;
     public static final String TASK_NOT_FOUND = "Task not found";
     public static final String TASK_ALREADY_EXISTS = "Task already exist";
+    public static final String TASK_NOT_FOUND_IN_PROJECT = "Task not found in project";
 
 
     public static String roleNotFound(String roleName) {

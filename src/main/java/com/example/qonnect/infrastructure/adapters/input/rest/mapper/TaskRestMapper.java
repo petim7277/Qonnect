@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface TaskRestMapper {
 
-    @Mapping(target = "project.id", source = "projectId")
+//    @Mapping(target = "project.id", source = "projectId")
     Task toTask(CreateTaskRequest request);
 
     TaskResponse toTaskResponse(Task task);
