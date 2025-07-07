@@ -167,4 +167,69 @@ class TaskServiceTest {
 
         verify(taskOutputPort, never()).deleteTaskById(anyLong());
     }
+
+
+    @Test
+    void updateTask_AsAdmin_Success() {
+        long taskId = 200L;
+        // existing task in DB
+        Task existing = Task.builder()
+                .id(taskId)
+                .title("Old")
+                .description("Old Desc")
+                .projectId(testProject.getId())
+                .status(TaskStatus.PENDING)
+                .build();
+
+        // incoming updated task
+        Task updateDto = Task.builder()
+                .title("New")
+                .description("New Desc")
+                .status(TaskStatus.IN_PROGRESS)
+                .build();
+
+        when(userOutputPort.getUserByEmail(adminUser.getEmail())).thenReturn(adminUser);
+        when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
+        when(taskOutputPort.getTaskById(taskId)).thenReturn(existing);
+        when(taskOutputPort.saveTask(any(Task.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Task updated = taskService.updateTask(adminUser, testProject.getId(), taskId, updateDto);
+
+        assertEquals("New", updated.getTitle());
+        assertEquals("New Desc", updated.getDescription());
+        assertEquals(TaskStatus.PENDING, updated.getStatus());
+        verify(taskOutputPort).saveTask(any(Task.class));
+    }
+
+    @Test
+    void updateTask_AsNonAdmin_ThrowsAccessDenied() {
+        when(userOutputPort.getUserByEmail(regularUser.getEmail())).thenReturn(regularUser);
+
+        Task dto = Task.builder().title("x").description("x").status(TaskStatus.PENDING).build();
+
+        assertThrows(AccessDeniedException.class,
+                () -> taskService.updateTask(regularUser, testProject.getId(), 1L, dto));
+    }
+
+    @Test
+    void updateTask_TaskNotInProject_ThrowsNotFound() {
+        long otherProjectId = 99L;
+        Project other = Project.builder().id(otherProjectId).name("Other").build();
+        Task existing = Task.builder()
+                .id(300L)
+                .title("Task")
+                .projectId(otherProjectId)
+                .build();
+
+        Task dto = Task.builder().title("x").description("x").build();
+
+        when(userOutputPort.getUserByEmail(adminUser.getEmail())).thenReturn(adminUser);
+        when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
+        when(taskOutputPort.getTaskById(300L)).thenReturn(existing);
+
+        assertThrows(TaskNotFoundException.class,
+                () -> taskService.updateTask(adminUser, testProject.getId(), 300L, dto));
+
+        verify(taskOutputPort, never()).saveTask(any());
+    }
 }

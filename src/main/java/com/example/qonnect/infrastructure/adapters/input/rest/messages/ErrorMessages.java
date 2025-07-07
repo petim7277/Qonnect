@@ -34,6 +34,7 @@ public class ErrorMessages {
     public static final String TASK_NOT_FOUND = "Task not found";
     public static final String TASK_ALREADY_EXISTS = "Task already exist";
     public static final String TASK_NOT_FOUND_IN_PROJECT = "Task not found in project";
+    public static final String DUE_DATE_INVALID = "Due date cannot be in the past";
 
 
     public static String roleNotFound(String roleName) {

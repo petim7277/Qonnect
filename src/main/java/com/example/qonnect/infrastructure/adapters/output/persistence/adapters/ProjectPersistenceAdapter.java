@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -72,6 +73,7 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<Project> getAllProjects(Long organizationId, Pageable pageable) {
         log.info("Retrieving projects for organization ID: {} with pagination: {}", organizationId, pageable);
 
@@ -85,6 +87,7 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<Project> findById(Long id) {
         log.info("Finding project by ID: {}", id);
 
@@ -108,6 +111,7 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
         return projectRepository.existsProjectNameInOrganizationExcludingId(name, organizationId, projectId);
     }
     @Override
+    @Transactional(readOnly = true)
     public Project getProjectById(Long projectId) {
         ProjectEntity project = projectRepository.findById(projectId).orElseThrow(()->new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND));
         return projectPersistenceMapper.toProject(project);
