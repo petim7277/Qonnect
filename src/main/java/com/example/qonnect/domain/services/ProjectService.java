@@ -9,6 +9,7 @@ import com.example.qonnect.domain.exceptions.ProjectAlreadyExistException;
 import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
+import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.User;
@@ -23,7 +24,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 
+import static com.example.qonnect.domain.validators.GeneralValidator.validateUserExists;
+import static com.example.qonnect.domain.validators.GeneralValidator.validateUserIsAdmin;
 import static com.example.qonnect.domain.validators.InputValidator.validateName;
 
 @Service
@@ -157,6 +161,28 @@ public class ProjectService implements ProjectUseCase, AssignUserToProjectUseCas
 
         projectOutputPort.deleteProject(project);
         log.info("Successfully deleted project: {} for user: {}", project.getName(), user.getId());
+    }
+
+    @Override
+    public List<User> getAllUsersInAProject(User user, Long projectId) {
+        Project project = getProjectById(user,projectId);
+        return project.getTeamMembers();
+    }
+
+    @Override
+    public void removeUserFromProject(User user, Long projectId, Long userToBeRemoveId) {
+
+        validateUserExists(user);
+        if (!userOutputPort.existById(user.getId())) {
+            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        validateUserIsAdmin(user);
+
+        Project project = projectOutputPort.getProjectById(projectId);
+        User userToBeRemoved = userOutputPort.getUserById(userToBeRemoveId);
+        if(project.getTeamMembers().stream().map(User::getId).anyMatch(user.getId()::equals) && project.getTeamMembers().stream().map(User::getId).anyMatch(userToBeRemoved.getId()::equals )){
+            projectOutputPort.removeUserFromProject(userToBeRemoved,project);
+        }
     }
 
     private void validateUserExists(User user) {

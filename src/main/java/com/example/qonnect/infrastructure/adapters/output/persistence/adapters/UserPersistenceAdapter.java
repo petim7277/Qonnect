@@ -9,6 +9,8 @@ import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.Us
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.UserRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,6 +85,12 @@ public class UserPersistenceAdapter implements UserOutputPort {
     public User getUserById(Long userId) {
         UserEntity entity = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND));
         return userPersistenceMapper.toUser(entity);
+    }
+
+    @Override
+    public Page<User> findAllByOrganizationId(Long organizationId, Pageable pageable) {
+        Page<UserEntity> userEntities = userRepository.findUserEntitiesByOrganizationId(organizationId, pageable);
+        return userEntities.map(userPersistenceMapper::toUser);
     }
 
 }

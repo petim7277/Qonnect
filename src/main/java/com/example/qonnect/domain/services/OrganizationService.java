@@ -2,9 +2,12 @@ package com.example.qonnect.domain.services;
 
 import com.example.qonnect.application.input.InviteUserUseCase;
 import com.example.qonnect.application.input.RegisterOrganizationAdminUseCase;
+import com.example.qonnect.application.input.RemoveUserFromAnOrganizationUseCase;
+import com.example.qonnect.application.input.ViewUserUserCase;
 import com.example.qonnect.application.output.*;
 import com.example.qonnect.domain.exceptions.OrganizationAlreadyExistsException;
 import com.example.qonnect.domain.exceptions.UserAlreadyExistException;
+import com.example.qonnect.domain.exceptions.UserNotFoundException;
 import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.enums.OtpType;
 import com.example.qonnect.domain.models.enums.Role;
@@ -13,6 +16,8 @@ import com.example.qonnect.domain.template.EmailTemplate;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,11 +26,13 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static com.example.qonnect.domain.validators.GeneralValidator.validateUserExists;
+import static com.example.qonnect.domain.validators.GeneralValidator.validateUserIsAdmin;
 import static com.example.qonnect.domain.validators.InputValidator.*;
 
 @Service
 @RequiredArgsConstructor
-public class OrganizationService implements RegisterOrganizationAdminUseCase, InviteUserUseCase {
+public class OrganizationService implements RegisterOrganizationAdminUseCase, InviteUserUseCase, RemoveUserFromAnOrganizationUseCase, ViewUserUserCase {
 
     private final UserOutputPort userOutputPort;
     private final OrganizationOutputPort organizationOutputPort;
@@ -119,5 +126,29 @@ public class OrganizationService implements RegisterOrganizationAdminUseCase, In
     }
 
 
+    @Override
+    public void removeUserFromAnOrganization(User user, Long userToBeRemovedId, Long organizationId) {
+        validateUserExists(user);
+        if (!userOutputPort.existById(user.getId())) {
+            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        validateUserIsAdmin(user);
+
+        Organization organization = organizationOutputPort.getOrganizationById(organizationId);
+        User userToBeRemoved = userOutputPort.getUserById(userToBeRemovedId);
+            if(organization.getUsers().stream().map(User::getId).anyMatch(user.getId()::equals) && organization.getUsers().stream().map(User::getId).anyMatch(userToBeRemoved.getId()::equals )){
+                organizationOutputPort.removeUserFromOrganization(userToBeRemoved, organization);
+            }
+    }
+
+    @Override
+    public Page<User> getAllUsersInOrganization(User user,Long organizationId, Pageable pageable) {
+        validateUserExists(user);
+        if (!userOutputPort.existById(user.getId())) {
+            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        validateUserIsAdmin(user);
+        return userOutputPort.findAllByOrganizationId(organizationId, pageable);
+    }
 }
 
