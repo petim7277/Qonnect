@@ -3,6 +3,7 @@ package com.example.qonnect.domain.services;
 import com.example.qonnect.application.input.CreateTaskUseCase;
 import com.example.qonnect.application.input.DeleteTaskUseCase;
 import com.example.qonnect.application.input.UpdateTaskUseCase;
+import com.example.qonnect.application.input.ViewAllTaskInAProjectUseCase;
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.TaskOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
@@ -21,13 +22,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.example.qonnect.domain.validators.InputValidator.validateName;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, UpdateTaskUseCase {
+public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, UpdateTaskUseCase, ViewAllTaskInAProjectUseCase {
 
     private final TaskOutputPort taskOutputPort;
     private final UserOutputPort userOutputPort;
@@ -106,6 +108,12 @@ public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, Update
         existing.setUpdatedAt(LocalDateTime.now());
 
         return taskOutputPort.saveTask(existing);
+    }
+
+    @Override
+    public List<Task> getAllTasksInProject(User user, Long projectId) {
+        projectOutputPort.getProjectById(projectId);
+        return taskOutputPort.getAllTasksByProjectId(projectId);
     }
 
 }

@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,7 +29,6 @@ class TaskPersistenceAdapterTest {
     @BeforeEach
     void setUp() {
         taskRepository.deleteAll();
-
         TaskEntity entity = new TaskEntity();
         entity.setTitle("Integration Task");
         entity.setDescription("This is an integration test");
@@ -90,4 +90,36 @@ class TaskPersistenceAdapterTest {
         assertThrows(TaskNotFoundException.class, () ->
                 taskPersistenceAdapter.deleteTaskById(nonExistentId));
     }
+
+    @Test
+    void testGetAllTasksByProjectId_Success() {
+        Long projectId = 43L;
+
+        TaskEntity task1 = TaskEntity.builder()
+                .title("Task 1")
+                .description("Desc 1")
+                .projectId(projectId)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        TaskEntity task2 = TaskEntity.builder()
+                .title("Task 2")
+                .description("Desc 2")
+                .projectId(projectId)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+
+        taskRepository.save(task1);
+        taskRepository.save(task2);
+
+        List<Task> taskList = taskPersistenceAdapter.getAllTasksByProjectId(projectId);
+
+        assertEquals(2, taskList.size());
+        assertTrue(taskList.stream().anyMatch(t -> t.getTitle().equals("Task 1")));
+        assertTrue(taskList.stream().anyMatch(t -> t.getTitle().equals("Task 2")));
+    }
+
 }
