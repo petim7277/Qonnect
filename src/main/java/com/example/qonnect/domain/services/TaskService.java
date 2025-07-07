@@ -2,6 +2,7 @@ package com.example.qonnect.domain.services;
 
 import com.example.qonnect.application.input.CreateTaskUseCase;
 import com.example.qonnect.application.input.DeleteTaskUseCase;
+import com.example.qonnect.application.input.UpdateTaskUseCase;
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.TaskOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
@@ -26,7 +27,7 @@ import static com.example.qonnect.domain.validators.InputValidator.validateName;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase {
+public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, UpdateTaskUseCase {
 
     private final TaskOutputPort taskOutputPort;
     private final UserOutputPort userOutputPort;
@@ -76,4 +77,35 @@ public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase {
 
         taskOutputPort.deleteTaskById(taskId);
     }
+
+
+    @Override
+    public Task updateTask(User user, Long projectId, Long taskId, Task updatedTask) {
+        User foundUser = userOutputPort.getUserByEmail(user.getEmail());
+        if (!foundUser.getRole().equals(Role.ADMIN)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
+
+        Project project = projectOutputPort.getProjectById(projectId);
+        Task existing = taskOutputPort.getTaskById(taskId);
+
+        if (!existing.getProjectId().equals(project.getId())) {
+            throw new TaskNotFoundException(ErrorMessages.TASK_NOT_FOUND_IN_PROJECT, HttpStatus.NOT_FOUND);
+        }
+
+        validateName(updatedTask.getTitle(), "Title");
+        validateName(updatedTask.getDescription(), "Description");
+
+        if (updatedTask.getDueDate() != null && updatedTask.getDueDate().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException(ErrorMessages.DUE_DATE_INVALID);
+        }
+
+        existing.setTitle(updatedTask.getTitle());
+        existing.setDescription(updatedTask.getDescription());
+        existing.setDueDate(updatedTask.getDueDate());
+        existing.setUpdatedAt(LocalDateTime.now());
+
+        return taskOutputPort.saveTask(existing);
+    }
+
 }
