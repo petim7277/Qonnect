@@ -28,6 +28,7 @@ public class User {
     @JsonIgnore
     private boolean enabled;
 
+
     @JsonIgnore
     private String idToken;
 

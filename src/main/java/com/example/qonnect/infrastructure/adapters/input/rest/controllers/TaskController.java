@@ -3,6 +3,7 @@ package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 import com.example.qonnect.application.input.CreateTaskUseCase;
 import com.example.qonnect.application.input.DeleteTaskUseCase;
 import com.example.qonnect.application.input.UpdateTaskUseCase;
+import com.example.qonnect.application.input.ViewAllTaskInAProjectUseCase;
 import com.example.qonnect.domain.models.Task;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CreateTaskRequest;
@@ -17,6 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class TaskController {
     private final TaskRestMapper taskRestMapper;
     private final DeleteTaskUseCase deleteTaskUseCase;
     private final UpdateTaskUseCase updateTaskUseCase;
+    private final ViewAllTaskInAProjectUseCase viewAllTaskInAProjectUseCase;
 
     @PostMapping("/task")
     public ResponseEntity<TaskResponse> createTask(
@@ -63,6 +67,19 @@ public class TaskController {
         Task updated = updateTaskUseCase.updateTask(user, projectId, taskId, partialUpdate);
 
         return ResponseEntity.ok(taskRestMapper.toTaskResponse(updated));
+    }
+
+
+    @GetMapping("/{projectId}/tasks")
+    public ResponseEntity<List<TaskResponse>> viewAllTasks(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long projectId
+    ) {
+        List<Task> tasks = viewAllTaskInAProjectUseCase.getAllTasksInProject(user, projectId);
+        List<TaskResponse> responseList = tasks.stream()
+                .map(taskRestMapper::toTaskResponse)
+                .toList();
+        return ResponseEntity.ok(responseList);
     }
 
 

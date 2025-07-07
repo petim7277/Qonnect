@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 
 @Component
 @RequiredArgsConstructor
@@ -55,6 +57,12 @@ public class TaskPersistenceAdapter implements TaskOutputPort {
         return taskMapper.toTask(entity);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Task> getAllTasksByProjectId(Long projectId) {
+        List<TaskEntity> allTask = taskRepository.findAllByProjectId(projectId);
+        return taskMapper.toTaskList(allTask);
+    }
 
 
 }

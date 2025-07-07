@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -232,4 +234,42 @@ class TaskServiceTest {
 
         verify(taskOutputPort, never()).saveTask(any());
     }
+
+
+    @Test
+    void getAllTasksInProject_Success() {
+        Long projectId = testProject.getId();
+        List<Task> mockTasks = List.of(
+                Task.builder().id(1L).title("Task 1").projectId(projectId).build(),
+                Task.builder().id(2L).title("Task 2").projectId(projectId).build()
+        );
+
+        when(projectOutputPort.getProjectById(projectId)).thenReturn(testProject);
+        when(taskOutputPort.getAllTasksByProjectId(projectId)).thenReturn(mockTasks);
+
+        List<Task> result = taskService.getAllTasksInProject(adminUser, projectId);
+
+        assertEquals(2, result.size());
+        assertEquals("Task 1", result.get(0).getTitle());
+        assertEquals("Task 2", result.get(1).getTitle());
+
+        verify(projectOutputPort).getProjectById(projectId);
+        verify(taskOutputPort).getAllTasksByProjectId(projectId);
+    }
+
+    @Test
+    void getAllTasksInProject_ProjectNotFound_ThrowsException() {
+        Long nonExistentProjectId = 999L;
+
+        when(projectOutputPort.getProjectById(nonExistentProjectId))
+                .thenThrow(new TaskNotFoundException("Project not found", org.springframework.http.HttpStatus.NOT_FOUND));
+
+        assertThrows(TaskNotFoundException.class, () ->
+                taskService.getAllTasksInProject(adminUser, nonExistentProjectId)
+        );
+
+        verify(projectOutputPort).getProjectById(nonExistentProjectId);
+        verify(taskOutputPort, never()).getAllTasksByProjectId(anyLong());
+    }
+
 }
