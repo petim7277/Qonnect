@@ -33,6 +33,16 @@ public class QonnectGlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(TaskNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTaskNotFound(TaskNotFoundException taskNotFoundException) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                taskNotFoundException.getMessage(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(OrganizationAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleOrganizationAlreadyExistArgument(OrganizationAlreadyExistsException organizationAlreadyExistsException) {
         ErrorResponse error = new ErrorResponse(

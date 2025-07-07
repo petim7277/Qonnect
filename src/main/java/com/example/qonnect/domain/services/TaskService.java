@@ -1,10 +1,13 @@
 package com.example.qonnect.domain.services;
 
 import com.example.qonnect.application.input.CreateTaskUseCase;
+import com.example.qonnect.application.input.DeleteTaskUseCase;
+import com.example.qonnect.application.input.UpdateTaskUseCase;
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.TaskOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.TaskAlreadyExistException;
+import com.example.qonnect.domain.exceptions.TaskNotFoundException;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.Task;
 import com.example.qonnect.domain.models.User;
@@ -24,7 +27,7 @@ import static com.example.qonnect.domain.validators.InputValidator.validateName;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TaskService implements CreateTaskUseCase {
+public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, UpdateTaskUseCase {
 
     private final TaskOutputPort taskOutputPort;
     private final UserOutputPort userOutputPort;
@@ -41,13 +44,13 @@ public class TaskService implements CreateTaskUseCase {
         validateName(task.getTitle(), "Title");
         validateName(task.getDescription(), "Description");
 
-        Project project = projectOutputPort.getProjectById(task.getProject().getId());
+        Project project = projectOutputPort.getProjectById(task.getProjectId());
 
         if (taskOutputPort.existsByTitleAndProjectId(task.getTitle(), project.getId())) {
             throw new TaskAlreadyExistException(ErrorMessages.TASK_ALREADY_EXISTS, HttpStatus.CONFLICT);
         }
 
-        task.setProject(project);
+        task.setProjectId(project.getId());
 
         task.setStatus(TaskStatus.PENDING);
         task.setCreatedAt(LocalDateTime.now());
@@ -56,5 +59,53 @@ public class TaskService implements CreateTaskUseCase {
         return taskOutputPort.saveTask(task);
     }
 
+
+    @Override
+    public void deleteTask(User user, Long projectId, Long taskId) {
+        User foundUser = userOutputPort.getUserByEmail(user.getEmail());
+
+        if (!foundUser.getRole().equals(Role.ADMIN)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
+
+        Project project = projectOutputPort.getProjectById(projectId);
+
+        Task task = taskOutputPort.getTaskById(taskId);
+        if (!task.getProjectId().equals(project.getId())) {
+            throw new TaskNotFoundException(ErrorMessages.TASK_NOT_FOUND_IN_PROJECT, HttpStatus.NOT_FOUND);
+        }
+
+        taskOutputPort.deleteTaskById(taskId);
+    }
+
+
+    @Override
+    public Task updateTask(User user, Long projectId, Long taskId, Task updatedTask) {
+        User foundUser = userOutputPort.getUserByEmail(user.getEmail());
+        if (!foundUser.getRole().equals(Role.ADMIN)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
+
+        Project project = projectOutputPort.getProjectById(projectId);
+        Task existing = taskOutputPort.getTaskById(taskId);
+
+        if (!existing.getProjectId().equals(project.getId())) {
+            throw new TaskNotFoundException(ErrorMessages.TASK_NOT_FOUND_IN_PROJECT, HttpStatus.NOT_FOUND);
+        }
+
+        validateName(updatedTask.getTitle(), "Title");
+        validateName(updatedTask.getDescription(), "Description");
+
+        if (updatedTask.getDueDate() != null && updatedTask.getDueDate().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException(ErrorMessages.DUE_DATE_INVALID);
+        }
+
+        existing.setTitle(updatedTask.getTitle());
+        existing.setDescription(updatedTask.getDescription());
+        existing.setDueDate(updatedTask.getDueDate());
+        existing.setUpdatedAt(LocalDateTime.now());
+
+        return taskOutputPort.saveTask(existing);
+    }
 
 }

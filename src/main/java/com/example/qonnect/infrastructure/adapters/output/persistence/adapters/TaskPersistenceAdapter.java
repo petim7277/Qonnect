@@ -40,5 +40,21 @@ public class TaskPersistenceAdapter implements TaskOutputPort {
         return taskRepository.existsByTitleAndProjectId(title,projectId);
     }
 
+    @Override
+    public void deleteTaskById(Long taskId) {
+        if (!taskRepository.existsById(taskId)) {
+            throw new TaskNotFoundException(ErrorMessages.TASK_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        taskRepository.deleteById(taskId);
+    }
+
+    @Override
+    public Task getTaskById(Long taskId) {
+        TaskEntity entity = taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskNotFoundException(ErrorMessages.TASK_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return taskMapper.toTask(entity);
+    }
+
+
 
 }
