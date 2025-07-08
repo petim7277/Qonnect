@@ -4,9 +4,11 @@ import com.example.qonnect.application.input.*;
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.TaskOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
+import com.example.qonnect.domain.exceptions.QonnectException;
 import com.example.qonnect.domain.exceptions.TaskAlreadyAssignedException;
 import com.example.qonnect.domain.exceptions.TaskAlreadyExistException;
 import com.example.qonnect.domain.exceptions.TaskNotFoundException;
+import com.example.qonnect.domain.models.Bug;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.Task;
 import com.example.qonnect.domain.models.User;
@@ -15,9 +17,12 @@ import com.example.qonnect.domain.models.enums.TaskStatus;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,7 +34,7 @@ import static com.example.qonnect.domain.validators.InputValidator.validateName;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, UpdateTaskUseCase, ViewAllTaskInAProjectUseCase, ViewATaskUseCase,AssignTaskUseCase {
+public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, UpdateTaskUseCase, ViewAllTaskInAProjectUseCase, ViewATaskUseCase,AssignTaskUseCase, ViewAllUserTaskUseCase {
 
     private final TaskOutputPort taskOutputPort;
     private final UserOutputPort userOutputPort;
@@ -178,6 +183,19 @@ public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, Update
         task.setUpdatedAt(LocalDateTime.now());
 
         return taskOutputPort.saveTask(task);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Task> getTasksByUserId(Long userId, Pageable pageable) {
+        log.info("Getting bugs for user ID: {} with pagination: {}", userId, pageable);
+        if (userId == null) {
+            throw new QonnectException(ErrorMessages.USER_NOT_FOUND, HttpStatus.BAD_REQUEST);
+        }
+        Page<Task> tasks = taskOutputPort.getTasksByUserId(userId, pageable);
+        log.info("Successfully retrieved {} bugs for user ID: {}",
+                tasks.getTotalElements(), userId);
+        return tasks;
     }
 
 }

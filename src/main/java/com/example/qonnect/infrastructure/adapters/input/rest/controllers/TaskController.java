@@ -10,6 +10,9 @@ import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.Tas
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.TaskRestMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,6 +33,7 @@ public class TaskController {
     private final ViewAllTaskInAProjectUseCase viewAllTaskInAProjectUseCase;
     private final ViewATaskUseCase viewATaskUseCase;
     private final AssignTaskUseCase assignTaskUseCase;
+    private final ViewAllUserTaskUseCase viewAllUserTaskUseCase;
 
     @PostMapping("/task")
     public ResponseEntity<TaskResponse> createTask(
@@ -111,6 +115,23 @@ public class TaskController {
         return ResponseEntity.ok("Task picked successfully");
     }
 
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<List<TaskResponse>> getTasksByUserId(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (page < 0) page = 0;
+        if (size < 0) size = 10;
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Task> tasks = viewAllUserTaskUseCase.getTasksByUserId(userId, pageable);
+
+        List<TaskResponse> responseList = tasks.getContent().stream()
+                .map(taskRestMapper::toTaskResponse)
+                .toList();
+
+        return ResponseEntity.ok(responseList);
+    }
 
 
 
