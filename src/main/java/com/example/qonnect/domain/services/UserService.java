@@ -204,7 +204,8 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswo
 
         user.setFirstName(firstName);
         user.setLastName(lastName);
-        user.setPassword(password);
+
+        user.setPassword(passwordEncoder.encode(password));
 
         userOutputPort.saveUser(user);
 

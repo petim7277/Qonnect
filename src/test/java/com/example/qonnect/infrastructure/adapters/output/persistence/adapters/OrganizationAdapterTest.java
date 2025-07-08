@@ -55,9 +55,11 @@ class OrganizationPersistenceAdapterTest {
 
         OrganizationEntity savedOrg = organizationRepository.save(orgEntity);
 
-        organization = new Organization();
-        organization.setId(savedOrg.getId());
-        organization.setName(savedOrg.getName());
+        organization = Organization.builder()
+                .id(savedOrg.getId())
+                .name(savedOrg.getName())
+                .build();
+
 
         user = new User();
         user.setEmail("member@example.com");
@@ -83,8 +85,10 @@ class OrganizationPersistenceAdapterTest {
 
     @Test
     void shouldSaveOrganizationSuccessfully() {
-        Organization org = new Organization();
-        org.setName("Another Org");
+        Organization org = Organization.builder()
+                .name("Another Org")
+                .build();
+
 
         Organization saved = adapter.saveOrganization(org);
 

@@ -36,6 +36,11 @@ public class ErrorMessages {
     public static final String TASK_NOT_FOUND_IN_PROJECT = "Task not found in project";
     public static final String DUE_DATE_INVALID = "Due date cannot be in the past";
     public static final String ACCESS_DENIED_TO_VIEW_TASK = "You are not permitted to view task";
+    public static final String ACCESS_DENIED_TO_ORGANIZATION = "You don't belong to this organization";
+    public static final String ONLY_DEVELOPER_CAN_BE_ASSIGNED_TASK = "Only developer can be assigned task";
+    public static final String ACCESS_DENIED_TO_ASSIGN_TASK = "you are not permitted to assign task";
+    public static final String ONLY_DEVELOPER_CAN_PICK_TASK = "only developer can pick task";
+    public static final String TASK_ALREADY_ASSIGNED = "Task Already Assigned";
 
 
     public static String roleNotFound(String roleName) {

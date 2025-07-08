@@ -4,6 +4,7 @@ import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
+import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.domain.models.enums.Role;
@@ -44,6 +45,19 @@ public class GeneralValidator {
             log.warn("User {} from organization {} attempted to access project {} from organization {}",
                     user.getId(), user.getOrganization().getId(), project.getId(), project.getOrganizationId());
             throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+        }
+    }
+
+
+    public static void validateUserBelongsOrganization(User user, Long organizationId) {
+        if (user.getOrganization() == null || user.getOrganization().getId() == null) {
+            throw new OrganizationNotFoundException(ErrorMessages.ORGANIZATION_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+
+        if (!user.getOrganization().getId().equals(organizationId)) {
+            log.warn("User {} from organization {} attempted to access organization {} from organization {}",
+                    user.getId(), user.getOrganization().getId(), organizationId, organizationId);
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_TO_ORGANIZATION);
         }
     }
 }
