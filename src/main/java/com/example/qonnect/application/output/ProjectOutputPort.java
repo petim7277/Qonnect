@@ -26,4 +26,6 @@ public interface ProjectOutputPort {
     boolean existsByNameAndOrganizationIdAndNotId(String name, Long organizationId, Long projectId);
 
     void removeUserFromProject(User userToBeRemoved, Project project);
+
+    void deleteProjectById(Long id);
 }

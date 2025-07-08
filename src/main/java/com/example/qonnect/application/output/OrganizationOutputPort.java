@@ -19,4 +19,5 @@ public interface OrganizationOutputPort {
     void removeUserFromOrganization(User userToBeRemoved,Organization organization);
 
 
+    void deleteById(Long id);
 }

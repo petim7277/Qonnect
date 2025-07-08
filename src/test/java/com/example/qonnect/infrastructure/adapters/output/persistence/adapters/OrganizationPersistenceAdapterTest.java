@@ -6,7 +6,6 @@ import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
-import com.example.qonnect.infrastructure.adapters.output.mapper.UserMapper;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OrganizationEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.UserEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.UserPersistenceMapper;
@@ -21,7 +20,6 @@ import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -76,9 +76,10 @@ public class OrganizationPersistenceAdapter implements OrganizationOutputPort {
         organizationRepository.save(organizationPersistenceMapper.toOrganizationEntity(organization));
     }
 
-
-
-
+    @Override
+    public void deleteById(Long id) {
+        organizationRepository.deleteById(id);
+    }
 
 
 }
