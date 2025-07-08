@@ -386,6 +386,9 @@ class UserServiceTest {
         assertEquals("test@example.com", loggedIn.getEmail());
         verify(passwordEncoder).matches(rawPassword, encodedPassword);
         verify(identityManagementOutputPort).login(storedUser);
+
+
+
     }
 
 
