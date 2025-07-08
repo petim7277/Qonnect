@@ -7,6 +7,7 @@ import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.UpdateProjectRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectCreationResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ProjectResponse;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.UserResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.ProjectRestMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,6 +22,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -133,5 +136,47 @@ public class ProjectController {
         projectUseCase.deleteProject(user, projectId);
         return ResponseEntity.ok().build();
     }
+
+    @Operation(
+            summary = "Remove user from project",
+            description = "Allows an admin to remove a user from a project they are both part of."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User removed from project successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied (not an admin or not in project)"),
+            @ApiResponse(responseCode = "404", description = "Project or User not found")
+    })
+    @DeleteMapping("/{projectId}/remove")
+    public ResponseEntity<Void> removeUserFromProject(
+            @AuthenticationPrincipal User performingUser,
+            @PathVariable Long projectId,
+            @RequestParam Long userId
+    ) {
+        projectUseCase.removeUserFromProject(performingUser, projectId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+
+    @Operation(
+            summary = "Get all users in a project",
+            description = "Returns a list of all users assigned to the specified project. Only project members can view this."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Project not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied (user is not part of the project)")
+    })
+    @GetMapping("/{projectId}/users")
+    public ResponseEntity<List<UserResponse>> getAllUsersInProject(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long projectId
+    ) {
+        List<User> users = projectUseCase.getAllUsersInAProject(user, projectId);
+        List<UserResponse> response = users.stream()
+                .map(projectRestMapper::toUserResponse)
+                .toList();
+        return ResponseEntity.ok(response);
+    }
+
 
 }

@@ -1,6 +1,7 @@
 package com.example.qonnect.application.output;
 
 import com.example.qonnect.domain.models.Project;
+import com.example.qonnect.domain.models.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -23,4 +24,6 @@ public interface ProjectOutputPort {
     Project getProjectById(Long projectId);
 
     boolean existsByNameAndOrganizationIdAndNotId(String name, Long organizationId, Long projectId);
+
+    void removeUserFromProject(User userToBeRemoved, Project project);
 }

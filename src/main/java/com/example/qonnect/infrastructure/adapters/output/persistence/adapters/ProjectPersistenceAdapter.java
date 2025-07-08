@@ -4,6 +4,7 @@ import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.models.Project;
+import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OrganizationEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.ProjectEntity;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 @Service
@@ -110,11 +112,27 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
 
         return projectRepository.existsProjectNameInOrganizationExcludingId(name, organizationId, projectId);
     }
+
+    @Override
+    public void removeUserFromProject(User userToBeRemoved, Project project) {
+            if (project.getTeamMembers() == null) {
+                project.setTeamMembers(new ArrayList<>());
+            }
+            project.getTeamMembers().removeIf(u -> u.getId().equals(userToBeRemoved.getId()));
+            projectRepository.save(projectPersistenceMapper.toProjectEntity(project));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Project getProjectById(Long projectId) {
         ProjectEntity project = projectRepository.findById(projectId).orElseThrow(()->new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND));
         return projectPersistenceMapper.toProject(project);
     }
+
+
+
+
+
+
 
 }

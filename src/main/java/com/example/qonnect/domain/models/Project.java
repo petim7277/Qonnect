@@ -26,7 +26,5 @@ public class Project {
     private List<Task> tasks;
     private List<Bug> bugs;
 
-    public static void validateProjectDetails(){
 
-    }
 }

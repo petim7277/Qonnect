@@ -60,9 +60,10 @@ class ProjectServiceTest {
     @BeforeEach
     void setUp() {
 
-        org = new Organization();
-        org.setId(1L);
-        org.setName("TestOrg");
+        org = Organization.builder()
+                .id(1L)
+                .name("TestOrg")
+                .build();
 
         adminUser = new User();
         adminUser.setId(1L);
@@ -254,8 +255,10 @@ class ProjectServiceTest {
         Long projectId = 1L;
         Long userId = 2L;
 
-        Organization otherOrg = new Organization();
-        otherOrg.setId(99L);
+        Organization otherOrg = Organization.builder()
+                .id(99L)
+                .build();
+
 
         User targetUser = new User();
         targetUser.setId(userId);
@@ -359,9 +362,11 @@ class ProjectServiceTest {
     @Test
     void shouldThrowException_whenGetProjectByIdWithUserFromDifferentOrganization() {
         Long projectId = 1L;
-        Organization differentOrg = new Organization();
-        differentOrg.setId(2L);
-        differentOrg.setName("Different Org");
+        Organization differentOrg =  Organization.builder()
+                .id(2L)
+                .name("Different Org")
+                .build();
+
 
         User userFromDifferentOrg = new User();
         userFromDifferentOrg.setId(3L);
@@ -534,9 +539,11 @@ class ProjectServiceTest {
     @Test
     void shouldThrowException_whenDeleteProjectWithUserFromDifferentOrganization() {
         Long projectId = 1L;
-        Organization differentOrg = new Organization();
-        differentOrg.setId(2L);
-        differentOrg.setName("Different Org");
+        Organization differentOrg = Organization.builder()
+                .id(2L)
+                .name("Different Org")
+                .build();
+
 
         User userFromDifferentOrg = new User();
         userFromDifferentOrg.setId(3L);
@@ -605,6 +612,95 @@ class ProjectServiceTest {
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
     }
 
+
+    @Test
+    void shouldReturnAllUsersInProject_whenUserIsAuthorized() {
+        User member1 = new User();
+        member1.setId(3L);
+        member1.setEmail("member1@example.com");
+
+        User member2 = new User();
+        member2.setId(4L);
+        member2.setEmail("member2@example.com");
+
+        List<User> teamMembers = Arrays.asList(member1, member2);
+
+        existingProject.setTeamMembers(teamMembers);
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+
+        when(projectOutputPort.findById(existingProject.getId()))
+                .thenReturn(Optional.of(existingProject));
+
+        List<User> result = projectService.getAllUsersInAProject(adminUser, existingProject.getId());
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.contains(member1));
+        assertTrue(result.contains(member2));
+    }
+
+
+    @Test
+    void shouldThrowException_whenProjectNotFound() {
+        Long invalidProjectId = 999L;
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+
+        when(projectOutputPort.findById(invalidProjectId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(ProjectNotFoundException.class,
+                () -> projectService.getAllUsersInAProject(adminUser, invalidProjectId));
+    }
+
+    @Test
+    void shouldRemoveUserFromProjectSuccessfully_whenAdminAndUserExistsAndInProject() {
+        Long projectId = existingProject.getId();
+        Long userToRemoveId = developerUser.getId();
+
+        existingProject.setTeamMembers(new ArrayList<>(List.of(adminUser, developerUser)));
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.getProjectById(projectId)).thenReturn(existingProject);
+        when(userOutputPort.getUserById(userToRemoveId)).thenReturn(developerUser);
+
+        projectService.removeUserFromProject(adminUser, projectId, userToRemoveId);
+
+        verify(projectOutputPort).removeUserFromProject(developerUser, existingProject);
+    }
+
+    @Test
+    void shouldNotRemoveUserIfNotInProject() {
+        Long projectId = existingProject.getId();
+        Long userToRemoveId = developerUser.getId();
+
+        existingProject.setTeamMembers(List.of(adminUser));
+
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+        when(projectOutputPort.getProjectById(projectId)).thenReturn(existingProject);
+        when(userOutputPort.getUserById(userToRemoveId)).thenReturn(developerUser);
+
+        projectService.removeUserFromProject(adminUser, projectId, userToRemoveId);
+
+        verify(projectOutputPort, never()).removeUserFromProject(any(), any());
+    }
+
+    @Test
+    void shouldThrowIfRequesterUserDoesNotExist() {
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(false);
+
+        assertThrows(UserNotFoundException.class,
+                () -> projectService.removeUserFromProject(adminUser, 1L, 2L));
+    }
+
+    @Test
+    void shouldThrowIfRequesterUserIsNotAdmin() {
+        adminUser.setRole(Role.DEVELOPER);
+        when(userOutputPort.existById(adminUser.getId())).thenReturn(true);
+
+        assertThrows(AccessDeniedException.class,
+                () -> projectService.removeUserFromProject(adminUser, 1L, 2L));
+    }
 
 
 
