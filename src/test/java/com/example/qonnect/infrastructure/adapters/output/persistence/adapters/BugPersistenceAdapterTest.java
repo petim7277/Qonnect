@@ -17,12 +17,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BugPersistenceAdapterTest {
 
     @Autowired
@@ -65,11 +65,6 @@ class BugPersistenceAdapterTest {
                 .build();
         organizationOutputPort.saveOrganization(organization);
 
-        project = Project.builder()
-                .name("naming")
-                .organizationId(organization.getId())
-                .build();
-        project = projectOutputPort.saveProject(project);
 
         task = Task.builder()
                 .title("naming")
@@ -87,6 +82,15 @@ class BugPersistenceAdapterTest {
                 .status(BugStatus.OPEN)
                 .createdAt(LocalDateTime.now())
                 .build();
+
+        project = Project.builder()
+                .name("naming")
+                .tasks(List.of(task))
+                .bugs(List.of(bug))
+                .organizationId(organization.getId())
+                .build();
+        project = projectOutputPort.saveProject(project);
+
     }
 
 
@@ -94,10 +98,9 @@ class BugPersistenceAdapterTest {
     @AfterEach
     void tearDown() {
         userOutputPort.deleteUserById(createdBy.getId());
-        projectOutputPort.deleteProject(project);
+        projectOutputPort.deleteProjectById(project.getId());
         taskOutputPort.deleteTaskById(task.getId());
         bugRepository.deleteAll();
-
         organizationOutputPort.deleteById(organization.getId());
     }
 
