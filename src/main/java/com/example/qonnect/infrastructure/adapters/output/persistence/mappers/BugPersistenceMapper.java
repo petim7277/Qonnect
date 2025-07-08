@@ -13,9 +13,15 @@ import java.util.List;
 )
 public interface BugPersistenceMapper {
 
+
+    @Mapping(source = "project.id", target = "projectId")
+    @Mapping(source = "task.id", target = "taskId")
     Bug toBug(BugEntity entity);
 
-    BugEntity toBugEntity(Bug bug);
+    @Mapping(target = "project.id", source = "projectId")
+    @Mapping(target = "task.id", source = "taskId")
+    BugEntity toBugEntity(Bug domain);
+
 
     List<Bug> toBugList(List<BugEntity> entities);
 

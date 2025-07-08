@@ -44,9 +44,8 @@ public class BugEntity {
     @JoinColumn(name = "task_id")
     private TaskEntity task;
 
-    @ManyToOne
-    @JoinColumn(name = "assigned_to")
-    private UserEntity assignedTo;
-
+    private Long assignedTo;
     private LocalDateTime createdAt;
 }
+
+

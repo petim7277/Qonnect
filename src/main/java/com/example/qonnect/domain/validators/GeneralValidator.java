@@ -4,7 +4,6 @@ import com.example.qonnect.application.output.UserOutputPort;
 import com.example.qonnect.domain.exceptions.OrganizationNotFoundException;
 import com.example.qonnect.domain.exceptions.ProjectNotFoundException;
 import com.example.qonnect.domain.exceptions.UserNotFoundException;
-import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.domain.models.enums.Role;

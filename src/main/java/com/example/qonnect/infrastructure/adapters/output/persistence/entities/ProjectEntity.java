@@ -23,7 +23,9 @@ public class ProjectEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private Long createdById;
+    @ManyToOne
+    @JoinColumn(name = "created_by")
+    private UserEntity createdBy;
 
     @ManyToOne
     @JoinColumn(name = "organization_id")

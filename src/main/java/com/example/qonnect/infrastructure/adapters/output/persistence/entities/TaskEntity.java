@@ -40,6 +40,6 @@ public class TaskEntity {
 
     private Long projectId;
 
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
     private List<BugEntity> bugs;
 }
