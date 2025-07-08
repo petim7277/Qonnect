@@ -123,6 +123,11 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
     }
 
     @Override
+    public void deleteProjectById(Long id) {
+        projectRepository.deleteById(id);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Project getProjectById(Long projectId) {
         ProjectEntity project = projectRepository.findById(projectId).orElseThrow(()->new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND));

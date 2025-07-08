@@ -1,216 +1,231 @@
 package com.example.qonnect.domain.services;
 
-import com.example.qonnect.application.output.BugOutputPort;
-import com.example.qonnect.application.output.OrganizationOutputPort;
-import com.example.qonnect.application.output.ProjectOutputPort;
-import com.example.qonnect.application.output.TaskOutputPort;
+import com.example.qonnect.application.output.*;
 import com.example.qonnect.domain.exceptions.BugNotFoundException;
 import com.example.qonnect.domain.exceptions.QonnectException;
 import com.example.qonnect.domain.models.*;
 import com.example.qonnect.domain.models.enums.BugSeverity;
 import com.example.qonnect.domain.models.enums.BugStatus;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.BugRestMapper;
+import com.example.qonnect.infrastructure.adapters.output.persistence.adapters.BugPersistenceAdapter;
+import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.BugRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-class BugServiceTest {
+@SpringBootTest
+class BugPersistenceAdapterTest {
 
-    @Mock
-    private BugOutputPort bugOutputPort;
-    @Mock private OrganizationOutputPort organizationOutputPort;
-    @Mock private TaskOutputPort taskOutputPort;
-    @Mock private ProjectOutputPort projectOutputPort;
-    @Mock private BugRestMapper bugRestMapper;
+    @Autowired
+    private BugPersistenceAdapter adapter;
+    @Autowired private BugRepository bugRepository;
+    @Autowired private UserOutputPort userOutputPort;
+    @Autowired private ProjectOutputPort projectOutputPort;
+    @Autowired private TaskOutputPort taskOutputPort;
+    @Autowired private OrganizationOutputPort organizationOutputPort;
 
-    @InjectMocks
-    private BugService bugService;
-
-    private User user;
-    private Task task;
-    private Project project;
     private Bug bug;
+    private User createdBy;
+    private Project project;
+    private Task task;
+    private Organization organization;
     private Pageable pageable;
 
     @BeforeEach
-    void setup() {
-        Organization org = new Organization();
-        org.setId(1L);
+    void setUp() {
+        pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
 
-        user = new User();
-        user.setId(1L);
-        user.setEmail("user@qonnect.com");
-        user.setOrganization(org);
+        createdBy = User.builder()
+                .firstName("Test")
+                .lastName("User")
+                .email("testuser3@example.com")
+                .password("password")
+                .enabled(true)
+                .invited(false)
+                .role(Role.DEVELOPER)
+                .build();
+        createdBy = userOutputPort.saveUser(createdBy);
 
-        task = new Task();
-        task.setId(10L);
-        task.setProjectId(100L);
+        organization = new Organization();
+        organization.setName("Test Org");
+        organization = organizationOutputPort.saveOrganization(organization);
 
-        project = new Project();
-        project.setId(100L);
-        project.setOrganizationId(org.getId());
+        project = Project.builder()
+                .name("naming")
+                .organizationId(organization.getId())
+                .build();
+        project = projectOutputPort.saveProject(project);
 
-        bug = new Bug();
-        bug.setId(5L);
-        bug.setTitle("Bug Title");
-        bug.setDescription("Bug Desc");
-        bug.setTaskId(task.getId());
+        task = Task.builder()
+                .title("naming")
+                .projectId(project.getId())
+                .build();
+        task = taskOutputPort.saveTask(task);
 
-        pageable = PageRequest.of(0, 10);
+        bug = Bug.builder()
+                .title("Adapter Test Bug")
+                .description("Bug created for adapter tests")
+                .taskId(task.getId())
+                .projectId(project.getId())
+                .createdBy(createdBy)
+                .severity(BugSeverity.MAJOR)
+                .status(BugStatus.OPEN)
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        bugRepository.deleteAll();
+
+        if (task != null && task.getId() != null) {
+            taskOutputPort.deleteTaskById(task.getId());
+        }
+
+        if (project != null && project.getId() != null) {
+            projectOutputPort.deleteProjectById(project.getId());
+        }
+
+        if (createdBy != null && createdBy.getId() != null) {
+            userOutputPort.deleteUserById(createdBy.getId());
+        }
+
+        if (organization != null && organization.getId() != null) {
+            organizationOutputPort.deleteOrganizationById(organization.getId());
+        }
     }
 
     @Test
-    void getBugById_success() {
-        when(taskOutputPort.getTaskById(task.getId())).thenReturn(task);
-        when(projectOutputPort.getProjectById(task.getProjectId())).thenReturn(project);
-        when(bugOutputPort.getBugByIdAndTaskId(bug.getId(), task.getId())).thenReturn(bug);
+    void shouldSaveBugSuccessfully() {
+        Bug saved = adapter.saveBug(bug);
 
-        Bug result = bugService.getBugById(user, task.getId(), bug.getId());
+        assertNotNull(saved.getId());
+        assertEquals("Adapter Test Bug", saved.getTitle());
 
-        assertEquals(bug.getId(), result.getId());
+        Optional<BugEntity> found = bugRepository.findById(saved.getId());
+        assertTrue(found.isPresent());
+        assertEquals(saved.getId(), found.get().getId());
     }
 
     @Test
-    void getBugById_shouldThrow_whenBugNotFound() {
-        when(taskOutputPort.getTaskById(task.getId())).thenReturn(task);
-        when(projectOutputPort.getProjectById(task.getProjectId())).thenReturn(project);
-        when(bugOutputPort.getBugByIdAndTaskId(bug.getId(), task.getId())).thenReturn(null);
+    void shouldRetrieveBugByIdAndTaskId() {
+        Bug saved = adapter.saveBug(bug);
 
+        Bug result = adapter.getBugByIdAndTaskId(saved.getId(), saved.getTaskId());
+
+        assertNotNull(result);
+        assertEquals(saved.getId(), result.getId());
+        assertEquals(saved.getTaskId(), result.getTaskId());
+    }
+
+    @Test
+    void shouldThrow_whenBugNotFoundByIdAndTaskId() {
         assertThrows(BugNotFoundException.class,
-                () -> bugService.getBugById(user, task.getId(), bug.getId()));
+                () -> adapter.getBugByIdAndTaskId(999L, 10L));
     }
 
     @Test
-    void updateBugDetails_success() {
-        Bug update = new Bug();
-        update.setId(bug.getId());
-        update.setTitle("Updated Title");
-        update.setDescription("Updated Desc");
+    void shouldGetAllBugsByProjectId() {
+        adapter.saveBug(bug);
 
-        when(taskOutputPort.getTaskById(task.getId())).thenReturn(task);
-        when(projectOutputPort.getProjectById(task.getProjectId())).thenReturn(project);
-        when(bugOutputPort.getBugByIdAndTaskId(update.getId(), task.getId())).thenReturn(bug);
-        when(bugOutputPort.saveBug(any())).thenAnswer(inv -> inv.getArgument(0));
+        Bug secondBug = Bug.builder()
+                .title("Another Bug")
+                .description("Second bug")
+                .taskId(task.getId())
+                .projectId(project.getId())
+                .createdBy(createdBy)
+                .severity(BugSeverity.MINOR)
+                .status(BugStatus.OPEN)
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        Bug result = bugService.updateBugDetails(user, task.getId(), update);
+        adapter.saveBug(secondBug);
 
-        assertEquals("Updated Title", result.getTitle());
-        assertEquals("Updated Desc", result.getDescription());
+        Page<Bug> result = adapter.getAllBugsByProjectId(project.getId(), pageable);
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals("Another Bug", result.getContent().get(0).getTitle());
     }
 
     @Test
-    void updateBugDetails_shouldThrow_whenDescriptionMissing() {
-        Bug invalid = new Bug();
-        invalid.setId(bug.getId());
+    void shouldGetAllBugsByTaskId() {
+        adapter.saveBug(bug);
 
-        assertThrows(QonnectException.class,
-                () -> bugService.updateBugDetails(user, task.getId(), invalid));
+        Bug secondBug = Bug.builder()
+                .title("Task Bug")
+                .description("Task-related bug")
+                .taskId(task.getId())
+                .projectId(project.getId())
+                .createdBy(createdBy)
+                .severity(BugSeverity.CRITICAL)
+                .status(BugStatus.OPEN)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        adapter.saveBug(secondBug);
+
+        Page<Bug> result = adapter.getAllBugsByTaskId(task.getId(), pageable);
+        assertEquals(2, result.getTotalElements());
     }
 
     @Test
-    void updateBugStatus_success() {
-        Bug update = new Bug();
-        update.setId(bug.getId());
-        update.setStatus(BugStatus.IN_PROGRESS);
+    void shouldGetBugsByUserId() {
+        adapter.saveBug(bug);
 
-        when(taskOutputPort.getTaskById(task.getId())).thenReturn(task);
-        when(projectOutputPort.getProjectById(task.getProjectId())).thenReturn(project);
-        when(bugOutputPort.getBugByIdAndTaskId(update.getId(), task.getId())).thenReturn(bug);
-        when(bugOutputPort.saveBug(any())).thenAnswer(inv -> inv.getArgument(0));
+        Bug anotherBug = Bug.builder()
+                .title("User Bug")
+                .description("Another bug by user")
+                .taskId(task.getId())
+                .projectId(project.getId())
+                .createdBy(createdBy)
+                .severity(BugSeverity.MAJOR)
+                .status(BugStatus.OPEN)
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        Bug result = bugService.updateBugStatus(user, task.getId(), update);
+        adapter.saveBug(anotherBug);
 
-        assertEquals(BugStatus.IN_PROGRESS, result.getStatus());
+        Page<Bug> result = adapter.getBugsByUserId(createdBy.getId(), pageable);
+
+        assertEquals(2, result.getTotalElements());
     }
 
     @Test
-    void updateBugStatus_shouldThrow_whenStatusMissing() {
-        Bug update = new Bug();
-        update.setId(bug.getId());
-
-        assertThrows(QonnectException.class,
-                () -> bugService.updateBugStatus(user, task.getId(), update));
+    void shouldReturnTrue_whenBugExistsById() {
+        Bug saved = adapter.saveBug(bug);
+        assertTrue(adapter.existsById(saved.getId()));
     }
 
     @Test
-    void updateBugSeverity_success() {
-        Bug update = new Bug();
-        update.setId(bug.getId());
-        update.setSeverity(BugSeverity.MAJOR);
-
-        when(taskOutputPort.getTaskById(task.getId())).thenReturn(task);
-        when(projectOutputPort.getProjectById(task.getProjectId())).thenReturn(project);
-        when(bugOutputPort.getBugByIdAndTaskId(update.getId(), task.getId())).thenReturn(bug);
-        when(bugOutputPort.saveBug(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        Bug result = bugService.updateBugSeverity(user, task.getId(), update);
-
-        assertEquals(BugSeverity.MAJOR, result.getSeverity());
+    void shouldReturnFalse_whenBugDoesNotExistById() {
+        assertFalse(adapter.existsById(999999L));
     }
 
     @Test
-    void updateBugSeverity_shouldThrow_whenSeverityMissing() {
-        Bug update = new Bug();
-        update.setId(bug.getId());
-
-        assertThrows(QonnectException.class,
-                () -> bugService.updateBugSeverity(user, task.getId(), update));
+    void shouldDeleteBugSuccessfully() {
+        Bug saved = adapter.saveBug(bug);
+        adapter.deleteBug(saved.getId());
+        assertFalse(bugRepository.findById(saved.getId()).isPresent());
     }
 
     @Test
-    void getAllBugsInProject_success() {
-        Page<Bug> page = new PageImpl<>(List.of(bug));
-
-        when(projectOutputPort.getProjectById(project.getId())).thenReturn(project);
-        when(bugOutputPort.getAllBugsByProjectId(project.getId(), pageable)).thenReturn(page);
-
-        Page<Bug> result = bugService.getAllBugsInAProject(user, project.getId(), pageable);
-
-        assertEquals(1, result.getContent().size());
-    }
-
-    @Test
-    void getAllBugsInTask_success() {
-        Page<Bug> page = new PageImpl<>(List.of(bug));
-
-        when(taskOutputPort.getTaskById(task.getId())).thenReturn(task);
-        when(projectOutputPort.getProjectById(task.getProjectId())).thenReturn(project);
-        when(bugOutputPort.getAllBugsByTaskId(task.getId(), pageable)).thenReturn(page);
-
-        Page<Bug> result = bugService.getAllBugsInATask(user, task.getId(), pageable);
-
-        assertEquals(1, result.getTotalElements());
-    }
-
-    @Test
-    void getBugsByUserId_success() {
-        Page<Bug> page = new PageImpl<>(List.of(bug));
-        when(bugOutputPort.getBugsByUserId(user.getId(), pageable)).thenReturn(page);
-
-        Page<Bug> result = bugService.getBugsByUserId(user.getId(), pageable);
-
-        assertEquals(1, result.getTotalElements());
-    }
-
-    @Test
-    void getBugsByUserId_shouldThrow_whenUserIdNull() {
-        assertThrows(QonnectException.class,
-                () -> bugService.getBugsByUserId(null, pageable));
+    void shouldThrow_whenDeletingNonExistingBug() {
+        assertThrows(BugNotFoundException.class,
+                () -> adapter.deleteBug(12345L));
     }
 }
-
