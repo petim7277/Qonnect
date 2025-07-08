@@ -29,6 +29,7 @@ public class TaskController {
     private final UpdateTaskUseCase updateTaskUseCase;
     private final ViewAllTaskInAProjectUseCase viewAllTaskInAProjectUseCase;
     private final ViewATaskUseCase viewATaskUseCase;
+    private final AssignTaskUseCase assignTaskUseCase;
 
     @PostMapping("/task")
     public ResponseEntity<TaskResponse> createTask(
@@ -90,6 +91,27 @@ public class TaskController {
         TaskResponse response = taskRestMapper.toTaskResponse(task);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/tasks/{taskId}/assign/{userId}")
+    public ResponseEntity<String> assignTaskToUser(
+            @AuthenticationPrincipal User admin,
+            @PathVariable Long taskId,
+            @PathVariable Long userId
+    ) {
+        assignTaskUseCase.assignTaskToUser(admin, taskId, userId);
+        return ResponseEntity.ok("Task assigned successfully");
+    }
+
+    @PostMapping("/tasks/{taskId}/self-assign")
+    public ResponseEntity<String> pickTask(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long taskId
+    ) {
+        assignTaskUseCase.selfAssignTask(user, taskId);
+        return ResponseEntity.ok("Task picked successfully");
+    }
+
+
 
 
 

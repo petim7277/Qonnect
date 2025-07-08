@@ -51,9 +51,11 @@ class ProjectPersistenceAdapterTest {
 
         OrganizationEntity savedOrg = organizationRepository.save(orgEntity);
 
-        org = new Organization();
-        org.setId(savedOrg.getId());
-        org.setName(savedOrg.getName());
+        org = Organization.builder()
+                .id(savedOrg.getId())
+                .name(savedOrg.getName())
+                .build();
+
 
         user = new User();
         user.setId(1L);

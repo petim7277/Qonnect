@@ -3,8 +3,10 @@ package com.example.qonnect.domain.services;
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.TaskOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
+import com.example.qonnect.domain.exceptions.TaskAlreadyAssignedException;
 import com.example.qonnect.domain.exceptions.TaskAlreadyExistException;
 import com.example.qonnect.domain.exceptions.TaskNotFoundException;
+import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.Task;
 import com.example.qonnect.domain.models.User;
@@ -38,22 +40,33 @@ class TaskServiceTest {
 
         taskService = new TaskService( taskOutputPort,userOutputPort, projectOutputPort);
 
+
+        Organization testOrg = Organization.builder()
+                .id(1L)
+                .name("TestOrg")
+                .build();
+
         adminUser = User.builder()
                 .id(1L)
                 .email("admin@example.com")
                 .role(Role.ADMIN)
+                .organization(testOrg)
                 .build();
 
         regularUser = User.builder()
                 .id(2L)
                 .email("user@example.com")
+                .organization(testOrg)
                 .role(Role.DEVELOPER)
                 .build();
 
         testProject = Project.builder()
                 .id(10L)
+                .organizationId(testOrg.getId())
                 .name("Project A")
                 .build();
+
+
     }
 
 
@@ -333,6 +346,109 @@ class TaskServiceTest {
         verify(projectOutputPort).getProjectById(testProject.getId());
         verify(taskOutputPort).getTaskById(taskId);
     }
+
+    @Test
+    void assignTaskToUser_AsAdmin_Success() {
+        Long taskId = 400L;
+        Long userId = 3L;
+
+        Organization org = Organization.builder().id(1L).name("Org1").build();
+        adminUser.setOrganization(org);
+
+        User developer = User.builder()
+                .id(userId)
+                .role(Role.DEVELOPER)
+                .organization(org)
+                .build();
+
+        Task task = Task.builder()
+                .id(taskId)
+                .title("Assign Me")
+                .projectId(10L)
+                .build();
+
+        Project project = Project.builder()
+                .id(10L)
+                .organizationId(org.getId())
+                .build();
+
+        when(userOutputPort.getUserByEmail(adminUser.getEmail())).thenReturn(adminUser);
+        when(taskOutputPort.getTaskById(taskId)).thenReturn(task);
+        when(projectOutputPort.getProjectById(10L)).thenReturn(project);
+        when(userOutputPort.getUserById(userId)).thenReturn(developer);
+        when(taskOutputPort.saveTask(any(Task.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Task result = taskService.assignTaskToUser(adminUser, taskId, userId);
+
+        assertNotNull(result.getAssignedTo());
+        assertEquals(userId, result.getAssignedTo().getId());
+        verify(taskOutputPort).saveTask(any(Task.class));
+    }
+
+    @Test
+    void selfAssignTask_Success() {
+        Long taskId = 401L;
+
+        Organization org = Organization.builder().id(1L).build();
+        regularUser.setOrganization(org);
+
+        Task task = Task.builder()
+                .id(taskId)
+                .title("Unassigned Task")
+                .projectId(10L)
+                .build();
+
+        Project project = Project.builder()
+                .id(10L)
+                .organizationId(org.getId())
+                .build();
+
+        when(userOutputPort.getUserByEmail(regularUser.getEmail())).thenReturn(regularUser);
+        when(taskOutputPort.getTaskById(taskId)).thenReturn(task);
+        when(projectOutputPort.getProjectById(10L)).thenReturn(project);
+        when(taskOutputPort.saveTask(any(Task.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Task result = taskService.selfAssignTask(regularUser, taskId);
+
+        assertNotNull(result.getAssignedTo());
+        assertEquals(regularUser.getId(), result.getAssignedTo().getId());
+    }
+
+    @Test
+    void selfAssignTask_AlreadyAssigned_Throws() {
+        Long taskId = 402L;
+
+        Organization org = Organization.builder().id(1L).build();
+        regularUser.setOrganization(org);
+
+        User anotherDeveloper = User.builder()
+                .id(99L)
+                .email("other@example.com")
+                .role(Role.DEVELOPER)
+                .organization(org)
+                .build();
+
+        Task task = Task.builder()
+                .id(taskId)
+                .title("Already Taken")
+                .projectId(10L)
+                .assignedTo(anotherDeveloper)
+                .build();
+
+        Project project = Project.builder()
+                .id(10L)
+                .organizationId(org.getId())
+                .build();
+
+        when(userOutputPort.getUserByEmail(regularUser.getEmail())).thenReturn(regularUser);
+        when(taskOutputPort.getTaskById(taskId)).thenReturn(task);
+        when(projectOutputPort.getProjectById(10L)).thenReturn(project);
+
+        assertThrows(TaskAlreadyAssignedException.class, () ->
+                taskService.selfAssignTask(regularUser, taskId));
+    }
+
+
 
 
 }
