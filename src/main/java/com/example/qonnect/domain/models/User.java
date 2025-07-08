@@ -81,6 +81,8 @@ public class User {
     @JsonIgnore
     private Project projects;
 
+
+
     public static void validateUserDetails(User user) {
         validateEmail(user.getEmail());
         validatePassword(user.getPassword());

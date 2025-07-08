@@ -46,4 +46,16 @@ public class GeneralValidator {
             throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
         }
     }
+
+//    public static void validateUser(User user, ) {
+//        if (user.getOrganization() == null || user.getOrganization().getId() == null) {
+//            throw new OrganizationNotFoundException(ErrorMessages.ORGANIZATION_NOT_FOUND, HttpStatus.NOT_FOUND);
+//        }
+//
+//        if (!user.getOrganization().getId().equals(project.getOrganizationId())) {
+//            log.warn("User {} from organization {} attempted to access project {} from organization {}",
+//                    user.getId(), user.getOrganization().getId(), project.getId(), project.getOrganizationId());
+//            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED);
+//        }
+//    }
 }
