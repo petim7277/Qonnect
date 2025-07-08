@@ -104,8 +104,10 @@ class UserPersistenceAdapterTest {
     void findAllByOrganizationId_shouldReturnPagedUsers() {
         Pageable pageable = PageRequest.of(0, 10);
 
-        Organization orgEntity = new Organization();
-        orgEntity.setName("Test Org");
+        Organization orgEntity = Organization.builder()
+                .name("Test Org")
+                .build();
+
         Organization savedOrg = organizationOutputPort.saveOrganization(orgEntity);
 
         UserEntity user1 = new UserEntity();

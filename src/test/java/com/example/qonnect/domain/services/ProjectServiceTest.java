@@ -60,9 +60,10 @@ class ProjectServiceTest {
     @BeforeEach
     void setUp() {
 
-        org = new Organization();
-        org.setId(1L);
-        org.setName("TestOrg");
+        org = Organization.builder()
+                .id(1L)
+                .name("TestOrg")
+                .build();
 
         adminUser = new User();
         adminUser.setId(1L);
@@ -254,8 +255,10 @@ class ProjectServiceTest {
         Long projectId = 1L;
         Long userId = 2L;
 
-        Organization otherOrg = new Organization();
-        otherOrg.setId(99L);
+        Organization otherOrg = Organization.builder()
+                .id(99L)
+                .build();
+
 
         User targetUser = new User();
         targetUser.setId(userId);
@@ -359,9 +362,11 @@ class ProjectServiceTest {
     @Test
     void shouldThrowException_whenGetProjectByIdWithUserFromDifferentOrganization() {
         Long projectId = 1L;
-        Organization differentOrg = new Organization();
-        differentOrg.setId(2L);
-        differentOrg.setName("Different Org");
+        Organization differentOrg =  Organization.builder()
+                .id(2L)
+                .name("Different Org")
+                .build();
+
 
         User userFromDifferentOrg = new User();
         userFromDifferentOrg.setId(3L);
@@ -534,9 +539,11 @@ class ProjectServiceTest {
     @Test
     void shouldThrowException_whenDeleteProjectWithUserFromDifferentOrganization() {
         Long projectId = 1L;
-        Organization differentOrg = new Organization();
-        differentOrg.setId(2L);
-        differentOrg.setName("Different Org");
+        Organization differentOrg = Organization.builder()
+                .id(2L)
+                .name("Different Org")
+                .build();
+
 
         User userFromDifferentOrg = new User();
         userFromDifferentOrg.setId(3L);

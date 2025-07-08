@@ -1,9 +1,6 @@
 package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 
-import com.example.qonnect.application.input.CreateTaskUseCase;
-import com.example.qonnect.application.input.DeleteTaskUseCase;
-import com.example.qonnect.application.input.UpdateTaskUseCase;
-import com.example.qonnect.application.input.ViewAllTaskInAProjectUseCase;
+import com.example.qonnect.application.input.*;
 import com.example.qonnect.domain.models.Task;
 import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CreateTaskRequest;
@@ -31,6 +28,8 @@ public class TaskController {
     private final DeleteTaskUseCase deleteTaskUseCase;
     private final UpdateTaskUseCase updateTaskUseCase;
     private final ViewAllTaskInAProjectUseCase viewAllTaskInAProjectUseCase;
+    private final ViewATaskUseCase viewATaskUseCase;
+    private final AssignTaskUseCase assignTaskUseCase;
 
     @PostMapping("/task")
     public ResponseEntity<TaskResponse> createTask(
@@ -81,6 +80,39 @@ public class TaskController {
                 .toList();
         return ResponseEntity.ok(responseList);
     }
+
+    @GetMapping("/projects/{projectId}/tasks/{taskId}")
+    public ResponseEntity<TaskResponse> viewTaskInProject(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long projectId,
+            @PathVariable Long taskId
+    ) {
+        Task task = viewATaskUseCase.viewTaskInProject(user, projectId, taskId);
+        TaskResponse response = taskRestMapper.toTaskResponse(task);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/tasks/{taskId}/assign/{userId}")
+    public ResponseEntity<String> assignTaskToUser(
+            @AuthenticationPrincipal User admin,
+            @PathVariable Long taskId,
+            @PathVariable Long userId
+    ) {
+        assignTaskUseCase.assignTaskToUser(admin, taskId, userId);
+        return ResponseEntity.ok("Task assigned successfully");
+    }
+
+    @PostMapping("/tasks/{taskId}/self-assign")
+    public ResponseEntity<String> pickTask(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long taskId
+    ) {
+        assignTaskUseCase.selfAssignTask(user, taskId);
+        return ResponseEntity.ok("Task picked successfully");
+    }
+
+
+
 
 
 

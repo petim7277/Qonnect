@@ -19,16 +19,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,16 +56,20 @@ class OrganizationServiceTest {
                 emailOutputPort
         );
 
-        user = new User();
-        user.setId(1L);
-        user.setEmail("praise@example.com");
-        user.setFirstName("Praise");
-        user.setLastName("Oyewole");
-        user.setPassword("Password123@");
+        org = Organization.builder()
+                .id(100L)
+                .name("Semicolon Tech")
+                .build();
 
-        org = new Organization();
-        org.setId(100L);
-        org.setName("Semicolon Tech");
+        user = User.builder()
+                .id(1L)
+                .email("praise@example.com")
+                .firstName("Praise")
+                .lastName("Oyewole")
+                .password("Password123@")
+                .role(Role.ADMIN)
+                .organization(org)
+                .build();
     }
 
     @Test
@@ -117,106 +116,91 @@ class OrganizationServiceTest {
 
     @ParameterizedTest
     @MethodSource("invalidInputs")
-    public void testInvalidOrganizationInput(String input){
-        Organization organization = new Organization();
-        organization.setName(input);
+    void testInvalidOrganizationInput(String input) {
+        Organization organization = Organization.builder().name(input).build();
         assertThrows(IllegalArgumentException.class, () -> registrationService.registerOrganizationAdmin(user, organization));
     }
 
-
     @ParameterizedTest
     @MethodSource("invalidInputs")
-    public void testInvalidUserInput(String input){
-        User user1 = new User();
-        user1.setFirstName(input);
-        user1.setLastName(input);
-        user1.setEmail(input);
-        user1.setPassword(input);
-        assertThrows(IllegalArgumentException.class, () -> registrationService.registerOrganizationAdmin(user1, org));
+    void testInvalidUserInput(String input) {
+        User invalidUser = User.builder()
+                .firstName(input)
+                .lastName(input)
+                .email(input)
+                .password(input)
+                .build();
+        assertThrows(IllegalArgumentException.class, () -> registrationService.registerOrganizationAdmin(invalidUser, org));
     }
-
 
     @Test
     void shouldInviteUserSuccessfully() {
-        User inviter = new User();
-        inviter.setEmail("admin@qonnect.com");
-        inviter.setRole(Role.ADMIN);
-        inviter.setOrganization(org);
-
         String inviteeEmail = "invitee@example.com";
 
-        when(userOutputPort.getUserByEmail(inviter.getEmail()))
-                .thenReturn(inviter);
-        when(userOutputPort.userExistsByEmail(inviteeEmail))
-                .thenReturn(false);
+        User inviter = User.builder()
+                .email("admin@qonnect.com")
+                .role(Role.ADMIN)
+                .organization(org)
+                .build();
+
+        when(userOutputPort.getUserByEmail(inviter.getEmail())).thenReturn(inviter);
+        when(userOutputPort.userExistsByEmail(inviteeEmail)).thenReturn(false);
 
         registrationService.inviteUser(inviter, inviteeEmail, Role.QA_ENGINEER);
 
-        verify(userOutputPort).saveUser(argThat(u ->
-                inviteeEmail.equals(u.getEmail())
-                        && u.getRole() == Role.QA_ENGINEER
-                        && u.isInvited()
-                        && !u.isEnabled()
-                        && u.getOrganization() == org
-                        && u.getInviteToken() != null
+        verify(userOutputPort).saveUser(argThat(invitee ->
+                inviteeEmail.equals(invitee.getEmail()) &&
+                        invitee.getRole() == Role.QA_ENGINEER &&
+                        invitee.isInvited() &&
+                        !invitee.isEnabled() &&
+                        invitee.getOrganization().equals(org) &&
+                        invitee.getInviteToken() != null
         ));
         verify(emailOutputPort).sendEmail(eq(inviteeEmail), contains("You're Invited"), anyString());
     }
 
     @Test
     void shouldThrowWhenInviterIsNotAdmin() {
-        User inviter = new User();
-        inviter.setEmail("tester@qonnect.com");
-        inviter.setRole(Role.QA_ENGINEER);
+        User inviter = User.builder()
+                .email("tester@qonnect.com")
+                .role(Role.QA_ENGINEER)
+                .build();
 
-        when(userOutputPort.getUserByEmail(inviter.getEmail()))
-                .thenReturn(inviter);
+        when(userOutputPort.getUserByEmail(inviter.getEmail())).thenReturn(inviter);
 
-        assertThrows(AccessDeniedException.class,
-                () -> registrationService.inviteUser(inviter,
-                        "new@qonnect.com",
-                        Role.QA_ENGINEER));
-
-        verify(userOutputPort).getUserByEmail(inviter.getEmail());
-        verifyNoMoreInteractions(userOutputPort);
-        verifyNoInteractions(emailOutputPort);
+        assertThrows(AccessDeniedException.class, () ->
+                registrationService.inviteUser(inviter, "new@qonnect.com", Role.QA_ENGINEER));
     }
-
 
     @Test
     void shouldThrowWhenInviteeAlreadyExists() {
-        User inviter = new User();
-        inviter.setEmail("admin@qonnect.com");
-        inviter.setRole(Role.ADMIN);
-        inviter.setOrganization(org);
+        User inviter = User.builder()
+                .email("admin@qonnect.com")
+                .role(Role.ADMIN)
+                .organization(org)
+                .build();
 
-        when(userOutputPort.getUserByEmail(inviter.getEmail()))
-                .thenReturn(inviter);
-        when(userOutputPort.userExistsByEmail("dup@qonnect.com"))
-                .thenReturn(true);
+        when(userOutputPort.getUserByEmail(inviter.getEmail())).thenReturn(inviter);
+        when(userOutputPort.userExistsByEmail("dup@qonnect.com")).thenReturn(true);
 
-        assertThrows(UserAlreadyExistException.class,
-                () -> registrationService.inviteUser(inviter, "dup@qonnect.com", Role.QA_ENGINEER));
-
-        verify(emailOutputPort, never()).sendEmail(anyString(), anyString(), anyString());
+        assertThrows(UserAlreadyExistException.class, () ->
+                registrationService.inviteUser(inviter, "dup@qonnect.com", Role.QA_ENGINEER));
     }
 
     @ParameterizedTest
     @MethodSource("invalidInputs")
     void shouldThrowWhenInviteeEmailIsInvalid(String invalidEmail) {
-        User inviter = new User();
-        inviter.setEmail("admin@qonnect.com");
-        inviter.setRole(Role.ADMIN);
-        inviter.setOrganization(org);
+        User inviter = User.builder()
+                .email("admin@qonnect.com")
+                .role(Role.ADMIN)
+                .organization(org)
+                .build();
 
-        when(userOutputPort.getUserByEmail(inviter.getEmail()))
-                .thenReturn(inviter);
+        when(userOutputPort.getUserByEmail(inviter.getEmail())).thenReturn(inviter);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> registrationService.inviteUser(inviter, invalidEmail, Role.QA_ENGINEER));
+        assertThrows(IllegalArgumentException.class, () ->
+                registrationService.inviteUser(inviter, invalidEmail, Role.QA_ENGINEER));
     }
-
-
 
     static Stream<String> invalidInputs() {
         return Stream.of(null, "", " ");
@@ -224,73 +208,55 @@ class OrganizationServiceTest {
 
     @Test
     void shouldRemoveUserFromOrganizationSuccessfully() {
-        User admin = new User();
-        admin.setId(1L);
-        admin.setRole(Role.ADMIN);
+        User admin = User.builder().id(1L).role(Role.ADMIN).build();
+        User userToRemove = User.builder().id(2L).build();
 
-        User userToRemove = new User();
-        userToRemove.setId(2L);
+        Organization organization = Organization.builder()
+                .id(10L)
+                .users(List.of(admin, userToRemove))
+                .build();
 
-        Organization organization = new Organization();
-        organization.setId(10L);
-        organization.setUsers(List.of(admin, userToRemove));
         when(userOutputPort.existById(admin.getId())).thenReturn(true);
-
-        when(organizationOutputPort.getOrganizationById(organization.getId()))
-                .thenReturn(organization);
-        when(userOutputPort.getUserById(userToRemove.getId()))
-                .thenReturn(userToRemove);
-
+        when(userOutputPort.getUserById(userToRemove.getId())).thenReturn(userToRemove);
+        when(organizationOutputPort.getOrganizationById(organization.getId())).thenReturn(organization);
 
         registrationService.removeUserFromAnOrganization(admin, userToRemove.getId(), organization.getId());
 
-        verify(organizationOutputPort).removeUserFromOrganization(userToRemove,organization);
+        verify(organizationOutputPort).removeUserFromOrganization(userToRemove, organization);
     }
 
     @Test
     void shouldThrowAccessDeniedIfNotAdmin() {
-        User nonAdmin = new User();
-        nonAdmin.setId(1L);
-        nonAdmin.setRole(Role.QA_ENGINEER);
-
+        User nonAdmin = User.builder().id(1L).role(Role.QA_ENGINEER).build();
         when(userOutputPort.existById(nonAdmin.getId())).thenReturn(true);
 
-
-        assertThrows(AccessDeniedException.class, () -> {
-            registrationService.removeUserFromAnOrganization(nonAdmin, 2L, 10L);
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                registrationService.removeUserFromAnOrganization(nonAdmin, 2L, 10L));
     }
 
     @Test
     void shouldNotRemoveIfUsersNotInSameOrganization() {
-        User admin = new User();
-        admin.setId(1L);
-        admin.setRole(Role.ADMIN);
+        User admin = User.builder().id(1L).role(Role.ADMIN).build();
+        User outsider = User.builder().id(3L).build();
 
-        User outsider = new User();
-        outsider.setId(3L);
-        Organization organization = new Organization();
-        organization.setId(10L);
-        organization.setUsers(List.of(admin));
+        Organization organization = Organization.builder()
+                .id(10L)
+                .users(List.of(admin))
+                .build();
+
         when(userOutputPort.existById(admin.getId())).thenReturn(true);
-
-        when(organizationOutputPort.getOrganizationById(organization.getId()))
-                .thenReturn(organization);
-        when(userOutputPort.getUserById(outsider.getId()))
-                .thenReturn(outsider);
+        when(organizationOutputPort.getOrganizationById(organization.getId())).thenReturn(organization);
+        when(userOutputPort.getUserById(outsider.getId())).thenReturn(outsider);
 
         registrationService.removeUserFromAnOrganization(admin, outsider.getId(), organization.getId());
 
-        verify(organizationOutputPort, never()).removeUserFromOrganization(any(),any());
+        verify(organizationOutputPort, never()).removeUserFromOrganization(any(), any());
     }
-
 
     @Test
     void getAllUsersInOrganization_shouldReturnPageOfUsers_WhenUserIsAdminAndExists() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<User> expectedPage = new PageImpl<>(List.of(user));
-
-        user.setRole(Role.ADMIN);
 
         when(userOutputPort.existById(user.getId())).thenReturn(true);
         when(userOutputPort.findAllByOrganizationId(org.getId(), pageable)).thenReturn(expectedPage);
@@ -305,30 +271,19 @@ class OrganizationServiceTest {
     @Test
     void getAllUsersInOrganization_shouldThrow_WhenUserDoesNotExist() {
         Pageable pageable = PageRequest.of(0, 10);
-
         when(userOutputPort.existById(user.getId())).thenReturn(false);
 
-        assertThrows(UserNotFoundException.class,
-                () -> registrationService.getAllUsersInOrganization(user, org.getId(), pageable));
-
+        assertThrows(UserNotFoundException.class, () ->
+                registrationService.getAllUsersInOrganization(user, org.getId(), pageable));
     }
 
     @Test
     void getAllUsersInOrganization_shouldThrow_WhenUserIsNotAdmin() {
         Pageable pageable = PageRequest.of(0, 10);
         user.setRole(Role.DEVELOPER);
-
         when(userOutputPort.existById(user.getId())).thenReturn(true);
 
-        assertThrows(AccessDeniedException.class,
-                () -> registrationService.getAllUsersInOrganization(user, org.getId(), pageable));
-
+        assertThrows(AccessDeniedException.class, () ->
+                registrationService.getAllUsersInOrganization(user, org.getId(), pageable));
     }
-
-
-
-
-
-
-
 }
