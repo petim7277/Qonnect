@@ -20,4 +20,7 @@ public interface UserOutputPort {
     User getUserById(Long userId);
 
     Page<User> findAllByOrganizationId(Long organizationId, Pageable pageable);
+
+
+    void deleteUserById(Long id);
 }

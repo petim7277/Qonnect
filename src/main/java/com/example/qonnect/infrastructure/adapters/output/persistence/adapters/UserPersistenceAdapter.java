@@ -93,4 +93,9 @@ public class UserPersistenceAdapter implements UserOutputPort {
         return userEntities.map(userPersistenceMapper::toUser);
     }
 
+    @Override
+    public void deleteUserById(Long id) {
+        userRepository.deleteById(id);
+    }
+
 }
