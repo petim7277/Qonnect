@@ -1,9 +1,6 @@
 package com.example.qonnect.domain.services;
 
-import com.example.qonnect.application.input.CreateTaskUseCase;
-import com.example.qonnect.application.input.DeleteTaskUseCase;
-import com.example.qonnect.application.input.UpdateTaskUseCase;
-import com.example.qonnect.application.input.ViewAllTaskInAProjectUseCase;
+import com.example.qonnect.application.input.*;
 import com.example.qonnect.application.output.ProjectOutputPort;
 import com.example.qonnect.application.output.TaskOutputPort;
 import com.example.qonnect.application.output.UserOutputPort;
@@ -29,7 +26,7 @@ import static com.example.qonnect.domain.validators.InputValidator.validateName;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, UpdateTaskUseCase, ViewAllTaskInAProjectUseCase {
+public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, UpdateTaskUseCase, ViewAllTaskInAProjectUseCase, ViewATaskUseCase {
 
     private final TaskOutputPort taskOutputPort;
     private final UserOutputPort userOutputPort;
@@ -114,6 +111,25 @@ public class TaskService implements CreateTaskUseCase, DeleteTaskUseCase, Update
     public List<Task> getAllTasksInProject(User user, Long projectId) {
         projectOutputPort.getProjectById(projectId);
         return taskOutputPort.getAllTasksByProjectId(projectId);
+    }
+
+    @Override
+    public Task viewTaskInProject(User user, Long projectId, Long taskId) {
+        Project project = projectOutputPort.getProjectById(projectId);
+
+        boolean isMember = project.getTeamMembers().stream()
+                .anyMatch(member -> member.getId().equals(user.getId())) || user.getRole().equals(Role.ADMIN);
+
+        if (!isMember) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_TO_VIEW_TASK);
+        }
+
+        Task task = taskOutputPort.getTaskById(taskId);
+        if (!task.getProjectId().equals(projectId)) {
+            throw new TaskNotFoundException(ErrorMessages.TASK_NOT_FOUND_IN_PROJECT, HttpStatus.NOT_FOUND);
+        }
+
+        return task;
     }
 
 }

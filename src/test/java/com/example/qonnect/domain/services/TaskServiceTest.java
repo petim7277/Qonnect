@@ -174,7 +174,6 @@ class TaskServiceTest {
     @Test
     void updateTask_AsAdmin_Success() {
         long taskId = 200L;
-        // existing task in DB
         Task existing = Task.builder()
                 .id(taskId)
                 .title("Old")
@@ -183,7 +182,6 @@ class TaskServiceTest {
                 .status(TaskStatus.PENDING)
                 .build();
 
-        // incoming updated task
         Task updateDto = Task.builder()
                 .title("New")
                 .description("New Desc")
@@ -271,5 +269,70 @@ class TaskServiceTest {
         verify(projectOutputPort).getProjectById(nonExistentProjectId);
         verify(taskOutputPort, never()).getAllTasksByProjectId(anyLong());
     }
+
+    @Test
+    void viewTaskInProject_AsTeamMember_Success() {
+        Long taskId = 301L;
+        Task task = Task.builder()
+                .id(taskId)
+                .title("Bug Fix")
+                .projectId(testProject.getId())
+                .build();
+
+        // Add user as a team member of the project
+        testProject.setTeamMembers(List.of(regularUser));
+
+        when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
+        when(taskOutputPort.getTaskById(taskId)).thenReturn(task);
+
+        Task result = taskService.viewTaskInProject(regularUser, testProject.getId(), taskId);
+
+        assertNotNull(result);
+        assertEquals(taskId, result.getId());
+        assertEquals("Bug Fix", result.getTitle());
+
+        verify(projectOutputPort).getProjectById(testProject.getId());
+        verify(taskOutputPort).getTaskById(taskId);
+    }
+
+    @Test
+    void viewTaskInProject_NotTeamMember_ThrowsAccessDenied() {
+        Long taskId = 302L;
+
+        testProject.setTeamMembers(List.of(adminUser));
+
+        when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
+
+        assertThrows(AccessDeniedException.class, () -> {
+            taskService.viewTaskInProject(regularUser, testProject.getId(), taskId);
+        });
+
+        verify(projectOutputPort).getProjectById(testProject.getId());
+        verify(taskOutputPort, never()).getTaskById(anyLong());
+    }
+
+    @Test
+    void viewTaskInProject_TaskNotInProject_Throws() {
+        Long taskId = 303L;
+
+        testProject.setTeamMembers(List.of(regularUser));
+
+        Task task = Task.builder()
+                .id(taskId)
+                .title("Outside Task")
+                .projectId(999L)
+                .build();
+
+        when(projectOutputPort.getProjectById(testProject.getId())).thenReturn(testProject);
+        when(taskOutputPort.getTaskById(taskId)).thenReturn(task);
+
+        assertThrows(TaskNotFoundException.class, () -> {
+            taskService.viewTaskInProject(regularUser, testProject.getId(), taskId);
+        });
+
+        verify(projectOutputPort).getProjectById(testProject.getId());
+        verify(taskOutputPort).getTaskById(taskId);
+    }
+
 
 }
