@@ -118,4 +118,9 @@ public class BugPersistenceAdapter implements BugOutputPort {
         bugRepository.deleteById(id);
         log.info("Successfully deleted bug with ID: {}", id);
     }
+
+    @Override
+    public boolean existsByTitleAndProjectId(String title, Long projectId) {
+        return bugRepository.existsByTitleAndProjectId(title,projectId);
+    }
 }

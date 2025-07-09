@@ -16,6 +16,7 @@ public interface BugPersistenceMapper {
 
     @Mapping(source = "project.id", target = "projectId")
     @Mapping(source = "task.id", target = "taskId")
+    @Mapping(source = "status", target = "status")
     Bug toBug(BugEntity entity);
 
     @Mapping(target = "project.id", source = "projectId")

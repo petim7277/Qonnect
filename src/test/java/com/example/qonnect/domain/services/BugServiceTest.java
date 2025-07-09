@@ -7,8 +7,10 @@ import com.example.qonnect.application.output.TaskOutputPort;
 import com.example.qonnect.domain.exceptions.BugNotFoundException;
 import com.example.qonnect.domain.exceptions.QonnectException;
 import com.example.qonnect.domain.models.*;
+import com.example.qonnect.domain.models.enums.BugPriority;
 import com.example.qonnect.domain.models.enums.BugSeverity;
 import com.example.qonnect.domain.models.enums.BugStatus;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.BugRestMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 
@@ -49,12 +52,15 @@ class BugServiceTest {
 
     @BeforeEach
     void setup() {
-        Organization org = new Organization();
-        org.setId(1L);
+        Organization org = Organization.builder()
+                .id(1L)
+                .build();
+
 
         user = new User();
         user.setId(1L);
         user.setEmail("user@qonnect.com");
+        user.setRole(Role.QA_ENGINEER);
         user.setOrganization(org);
 
         task = new Task();
@@ -212,5 +218,108 @@ class BugServiceTest {
         assertThrows(QonnectException.class,
                 () -> bugService.getBugsByUserId(null, pageable));
     }
+
+
+    @Test
+    void testReportBug_Success() {
+        Bug bug = Bug.builder()
+                .title("Login button not working")
+                .description("When clicked, it does nothing")
+                .status(BugStatus.OPEN)
+                .severity(BugSeverity.BLOCKER)
+                .priority(BugPriority.HIGH)
+                .projectId(project.getId())
+                .build();
+
+        when(projectOutputPort.getProjectById(project.getId())).thenReturn(project);
+        when(bugOutputPort.existsByTitleAndProjectId(bug.getTitle(), bug.getProjectId())).thenReturn(false);
+        when(bugOutputPort.saveBug(any(Bug.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Bug saved = bugService.reportBug(user, bug);
+
+        assertEquals(BugStatus.OPEN, saved.getStatus());
+        assertEquals("Login button not working", saved.getTitle());
+        assertEquals(user, saved.getCreatedBy());
+    }
+
+    @Test
+    void testReportBug_UnauthorizedRole() {
+        user.setRole(Role.DEVELOPER);
+
+        Bug bug = Bug.builder()
+                .title("Bug")
+                .description("Desc")
+                .status(BugStatus.OPEN)
+                .severity(BugSeverity.MINOR)
+                .priority(BugPriority.MEDIUM)
+                .projectId(project.getId())
+                .build();
+
+        when(projectOutputPort.getProjectById(project.getId())).thenReturn(project);
+
+        assertThrows(AccessDeniedException.class, () -> bugService.reportBug(user, bug));
+    }
+
+    @Test
+    void testReportBug_DifferentOrganization() {
+        project.setOrganizationId(99L);
+        Bug bug = Bug.builder()
+                .title("Bug")
+                .description("Desc")
+                .status(BugStatus.OPEN)
+                .severity(BugSeverity.MAJOR)
+                .priority(BugPriority.MEDIUM)
+                .projectId(project.getId())
+                .build();
+
+        when(projectOutputPort.getProjectById(project.getId())).thenReturn(project);
+
+        assertThrows(AccessDeniedException.class, () -> bugService.reportBug(user, bug));
+    }
+
+    @Test
+    void testReportBug_TitleAlreadyExists() {
+        Bug bug = Bug.builder()
+                .title("Duplicate Bug")
+                .description("Already logged")
+                .status(BugStatus.OPEN)
+                .severity(BugSeverity.MINOR)
+                .priority(BugPriority.LOW)
+                .projectId(project.getId())
+                .build();
+
+        when(projectOutputPort.getProjectById(project.getId())).thenReturn(project);
+        when(bugOutputPort.existsByTitleAndProjectId(bug.getTitle(), project.getId())).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> bugService.reportBug(user, bug));
+    }
+
+    @Test
+    void testReportBug_TaskDoesNotBelongToProject() {
+        Bug bug = Bug.builder()
+                .title("Task mismatch")
+                .description("The task belongs elsewhere")
+                .status(BugStatus.OPEN)
+                .severity(BugSeverity.MAJOR)
+                .priority(BugPriority.MEDIUM)
+                .projectId(project.getId())
+                .taskId(999L)
+                .build();
+
+        Task wrongTask = Task.builder()
+                .id(999L)
+                .projectId(42L)
+                .build();
+
+        when(projectOutputPort.getProjectById(project.getId())).thenReturn(project);
+        when(taskOutputPort.getTaskById(999L)).thenReturn(wrongTask);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                bugService.reportBug(user, bug));
+
+        assertEquals("Task does not belong to the specified project", ex.getMessage());
+    }
+
+
 }
 

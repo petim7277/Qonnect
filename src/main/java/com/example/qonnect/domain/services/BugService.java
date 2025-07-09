@@ -12,6 +12,8 @@ import com.example.qonnect.domain.models.Bug;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.Task;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.domain.models.enums.BugStatus;
+import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.validators.GeneralValidator;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.BugRestMapper;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
@@ -20,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +30,7 @@ import java.time.LocalDateTime;
 
 import static com.example.qonnect.domain.validators.GeneralValidator.validateUserBelongsToProjectOrganization;
 import static com.example.qonnect.domain.validators.GeneralValidator.validateUserExists;
+import static com.example.qonnect.domain.validators.InputValidator.validateInput;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +39,7 @@ public class BugService implements BugUseCase {
     private final BugOutputPort bugOutputPort;
     private final TaskOutputPort taskOutputPort;
     private final ProjectOutputPort projectOutputPort;
+
 
     @Override
     @Transactional(readOnly = true)
@@ -78,7 +83,6 @@ public class BugService implements BugUseCase {
         if (existingBug == null) {
             throw new BugNotFoundException(ErrorMessages.BUG_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
-
 
 
         if (bug.getTitle() != null && !bug.getTitle().isEmpty()) {
@@ -212,6 +216,55 @@ public class BugService implements BugUseCase {
         return bugs;
     }
 
+
+    public Bug reportBug(User reporter, Bug bug) {
+        Project project = projectOutputPort.getProjectById(bug.getProjectId());
+
+        if (!belongsToSameOrganization(reporter, project)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_TO_ORGANIZATION);
+        }
+
+        if (!isQaEngineer(reporter)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_TO_REPORT_BUG);
+        }
+
+        if (bug.getTaskId() != null) {
+            Task task = taskOutputPort.getTaskById(bug.getTaskId());
+            System.out.println("Fetched task = " + task);
+            System.out.println("task.getProjectId() = " + task.getProjectId());
+
+            if (!task.getProjectId().equals(bug.getProjectId())) {
+                throw new IllegalArgumentException("Task does not belong to the specified project");
+            }
+        }
+
+        validateInput(bug.getTitle());
+        validateInput(bug.getDescription());
+//        validateInput(bug.getStatus().name());
+//        validateInput(bug.getSeverity().name());
+//        validateInput(bug.getPriority().name());
+        validateInput(bug.getDescription());
+
+        if (bugOutputPort.existsByTitleAndProjectId(bug.getTitle(), bug.getProjectId())) {
+            throw new IllegalArgumentException("Bug with this title already exists in the project");
+        }
+
+
+        bug.setCreatedBy(reporter);
+        bug.setStatus(BugStatus.OPEN);
+
+        return bugOutputPort.saveBug(bug);
+    }
+
+    private boolean belongsToSameOrganization(User user, Project project) {
+        return user.getOrganization().getId().equals(project.getOrganizationId());
+    }
+
+    private boolean isQaEngineer(User user) {
+        return Role.QA_ENGINEER.equals(user.getRole());
+    }
+
+
     private void validateBugId(Long bugId) {
         if (bugId == null) {
             throw new BugNotFoundException(ErrorMessages.BUG_NOT_FOUND, HttpStatus.BAD_REQUEST);
@@ -223,5 +276,5 @@ public class BugService implements BugUseCase {
             throw new TaskNotFoundException(ErrorMessages.TASK_NOT_FOUND, HttpStatus.BAD_REQUEST);
         }
     }
-
 }
+
