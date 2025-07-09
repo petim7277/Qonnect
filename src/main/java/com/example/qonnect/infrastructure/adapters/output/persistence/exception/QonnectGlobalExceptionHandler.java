@@ -181,6 +181,16 @@ public class QonnectGlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(BugNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleBugNotFound(BugNotFoundException bugNotFoundException) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                bugNotFoundException.getMessage(),
+                Instant.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleInvalidEnumOrBody(HttpMessageNotReadableException ex) {
         Throwable cause = ex.getCause();

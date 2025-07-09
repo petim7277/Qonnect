@@ -92,7 +92,7 @@ public class BugPersistenceAdapter implements BugOutputPort {
     public Page<Bug> getBugsByUserId(Long userId, Pageable pageable) {
         log.info("Getting bugs for user ID: {} with pagination: {}", userId, pageable);
 
-        Page<BugEntity> bugEntities = bugRepository.findByCreatedBy_Id(userId, pageable);
+        Page<BugEntity> bugEntities = bugRepository.findByAssignedTo_Id(userId, pageable);
 
         Page<Bug> bugs = bugEntities.map(bugPersistenceMapper::toBug);
         log.info("Found {} bugs for user ID: {}", bugs.getTotalElements(), userId);
@@ -122,5 +122,11 @@ public class BugPersistenceAdapter implements BugOutputPort {
     @Override
     public boolean existsByTitleAndProjectId(String title, Long projectId) {
         return bugRepository.existsByTitleAndProjectId(title,projectId);
+    }
+
+    @Override
+    public Bug getBugById(Long bugId) {
+        BugEntity entity = bugRepository.findById(bugId).orElseThrow(()->new BugNotFoundException(ErrorMessages.BUG_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return bugPersistenceMapper.toBug(entity);
     }
 }

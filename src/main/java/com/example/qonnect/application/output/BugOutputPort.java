@@ -23,4 +23,6 @@ public interface BugOutputPort {
 
     boolean existsByTitleAndProjectId(String title, Long projectId);
 
+    Bug getBugById(Long bugId);
+
 }
