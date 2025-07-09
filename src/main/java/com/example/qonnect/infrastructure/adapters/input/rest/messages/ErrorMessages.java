@@ -44,6 +44,7 @@ public class ErrorMessages {
     public static final String BUG_NOT_FOUND = "Bug not found";
     public static final String BUG_SEVERITY_IS_REQUIRED = "Bug severity is required";
     public static final String BUG_STATUS_IS_REQUIRED = "Bug status is required";
+    public static final String ACCESS_DENIED_TO_REPORT_BUG = "Only QA can report bug";
 
 
     public static String roleNotFound(String roleName) {

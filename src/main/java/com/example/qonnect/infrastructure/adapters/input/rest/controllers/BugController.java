@@ -6,6 +6,7 @@ import com.example.qonnect.domain.models.User;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.BugRestMapper;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.UpdateBugRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.BugResponse;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.CreateBugRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ public class BugController {
 
     private final BugUseCase bugUseCase;
     private final BugRestMapper bugRestMapper;
+
 
     @Operation(summary = "Get Bug by ID", description = "Get a bug using its ID and the task it belongs to.")
     @ApiResponses({
@@ -119,6 +122,21 @@ public class BugController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Bug> bugs = bugUseCase.getBugsByUserId(userId, pageable);
         return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
+    }
+
+    @PostMapping("/{projectId}/bug")
+    public ResponseEntity<BugResponse> reportBug(
+            @PathVariable Long projectId,
+            @RequestBody @Valid CreateBugRequest request,
+            @AuthenticationPrincipal User user
+    ) {
+
+        Bug domainBug = bugRestMapper.toDomain(request);
+        domainBug.setProjectId(projectId);
+        Bug saved = bugUseCase.reportBug(user, domainBug);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(bugRestMapper.toResponse(saved));
     }
 }
 

@@ -21,4 +21,6 @@ public interface BugOutputPort {
 
     void deleteBug(Long id);
 
+    boolean existsByTitleAndProjectId(String title, Long projectId);
+
 }

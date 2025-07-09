@@ -13,4 +13,6 @@ public interface BugUseCase {
     Page<Bug> getAllBugsInAProject(User user,Long projectId, Pageable pageable);
     Page<Bug> getAllBugsInATask(User user,Long taskId, Pageable pageable);
     Page<Bug> getBugsByUserId(Long userId, Pageable pageable);
+    Bug reportBug(User user, Bug bug);
+
 }
