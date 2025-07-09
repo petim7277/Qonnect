@@ -1,6 +1,9 @@
 package com.example.qonnect.application.output;
 
 import com.example.qonnect.domain.models.Task;
+import com.example.qonnect.domain.models.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -19,4 +22,5 @@ public interface TaskOutputPort {
 
     List<Task> getAllTasksByProjectId(Long projectId);
 
+    Page<Task> getTasksByUserId(Long userId, Pageable pageable);
 }

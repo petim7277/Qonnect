@@ -33,8 +33,8 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
 
     @Override
     public Project saveProject(Project project) {
-        if (projectRepository.existsById(project.getId())) {
-            throw new ProjectNotFoundException(ErrorMessages.PROJECT_EXIST_ALREADY, HttpStatus.NOT_FOUND);
+        if (project.getId() != null && !projectRepository.existsById(project.getId())) {
+            throw new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         OrganizationEntity orgEntity = organizationRepository.findById(project.getOrganizationId())
