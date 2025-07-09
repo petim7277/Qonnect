@@ -25,13 +25,20 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BugPersistenceAdapterTest {
 
-    @Autowired private BugPersistenceAdapter adapter;
-    @Autowired private BugRepository bugRepository;
-    @Autowired private UserOutputPort userOutputPort;
-    @Autowired private ProjectOutputPort projectOutputPort;
-    @Autowired private TaskOutputPort taskOutputPort;
-    @Autowired private OrganizationOutputPort organizationOutputPort;
-    @Autowired private OrganizationRepository organizationRepository;
+    @Autowired
+    private BugPersistenceAdapter adapter;
+    @Autowired
+    private BugRepository bugRepository;
+    @Autowired
+    private UserOutputPort userOutputPort;
+    @Autowired
+    private ProjectOutputPort projectOutputPort;
+    @Autowired
+    private TaskOutputPort taskOutputPort;
+    @Autowired
+    private OrganizationOutputPort organizationOutputPort;
+    @Autowired
+    private OrganizationRepository organizationRepository;
 
     private Bug bug;
     private Pageable pageable;

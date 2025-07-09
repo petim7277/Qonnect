@@ -14,6 +14,10 @@ import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.enums.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
@@ -446,6 +450,37 @@ class TaskServiceTest {
 
         assertThrows(TaskAlreadyAssignedException.class, () ->
                 taskService.selfAssignTask(regularUser, taskId));
+    }
+
+
+    @Test
+    void testGetTasksByUserId_Success() {
+        Long userId = 2L;
+        Pageable pageable = PageRequest.of(0, 5);
+
+        Task task1 = Task.builder()
+                .id(1L)
+                .title("Task 1")
+                .assignedTo(regularUser)
+                .build();
+
+        Task task2 = Task.builder()
+                .id(2L)
+                .title("Task 2")
+                .assignedTo(regularUser)
+                .build();
+
+        Page<Task> taskPage = new PageImpl<>(List.of(task1, task2), pageable, 2);
+
+        when(taskOutputPort.getTasksByUserId(userId, pageable)).thenReturn(taskPage);
+
+        Page<Task> result = taskService.getTasksByUserId(userId, pageable);
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals("Task 1", result.getContent().get(0).getTitle());
+        assertEquals("Task 2", result.getContent().get(1).getTitle());
+
+        verify(taskOutputPort).getTasksByUserId(userId, pageable);
     }
 
 
