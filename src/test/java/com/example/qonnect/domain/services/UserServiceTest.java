@@ -363,6 +363,9 @@ class UserServiceTest {
         assertTrue(passwordEncoder.matches(rawPassword, storedUser.getPassword()));
 
         verify(identityManagementOutputPort).login(storedUser);
+
+
+
     }
 
 

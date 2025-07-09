@@ -21,4 +21,6 @@ public interface BugRepository extends JpaRepository<BugEntity, Long> {
     Page<BugEntity> findByCreatedBy_Id(Long userId, Pageable pageable);
 
 
+    boolean existsByTitleAndProjectId(String title, Long projectId);
+
 }

@@ -2,9 +2,11 @@ package com.example.qonnect.infrastructure.adapters.output.persistence.exception
 
 import com.example.qonnect.domain.exceptions.*;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.ErrorResponse;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.apache.http.auth.InvalidCredentialsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -178,5 +180,54 @@ public class QonnectGlobalExceptionHandler {
         );
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidEnumOrBody(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getCause();
+
+        if (cause instanceof InvalidFormatException) {
+            InvalidFormatException exception = (InvalidFormatException) cause;
+
+            Class<?> targetType = exception.getTargetType();
+            if (targetType.isEnum()) {
+                String invalidValue = String.valueOf(exception.getValue());
+                String allowedValues = String.join(", ", getEnumValues(targetType));
+
+                String message = String.format(
+                        "Invalid value '%s' for enum %s. Allowed values: [%s]",
+                        invalidValue, targetType.getSimpleName(), allowedValues
+                );
+
+                ErrorResponse error = new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        message,
+                        Instant.now()
+                );
+
+                return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        // fallback for other unreadable JSON issues
+        ErrorResponse fallback = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Malformed request body or invalid value.",
+                Instant.now()
+        );
+
+        return new ResponseEntity<>(fallback, HttpStatus.BAD_REQUEST);
+    }
+
+    private String[] getEnumValues(Class<?> enumType) {
+        Object[] constants = enumType.getEnumConstants();
+        String[] names = new String[constants.length];
+        for (int i = 0; i < constants.length; i++) {
+            names[i] = constants[i].toString();
+        }
+        return names;
+    }
+
+
+
 
 }

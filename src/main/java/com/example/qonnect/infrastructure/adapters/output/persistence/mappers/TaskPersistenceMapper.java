@@ -17,11 +17,16 @@ import java.util.List;
 )
 public interface TaskPersistenceMapper {
 
+    @Mapping(source = "projectId", target = "projectId")
     Task toTask(TaskEntity entity);
 
+    @Mapping(target = "projectId", source = "projectId")
     TaskEntity toTaskEntity(Task task);
 
     List<Task> toTaskList(List<TaskEntity> entities);
 
     List<TaskEntity> toTaskEntityList(List<Task> tasks);
 }
+
+
+
