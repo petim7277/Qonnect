@@ -3,6 +3,7 @@ package com.example.qonnect.infrastructure.adapters.input.rest.controllers;
 import com.example.qonnect.application.input.BugUseCase;
 import com.example.qonnect.domain.models.Bug;
 import com.example.qonnect.domain.models.User;
+import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.AssignBugResponse;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.BugRestMapper;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.requests.UpdateBugRequest;
 import com.example.qonnect.infrastructure.adapters.input.rest.data.responses.BugResponse;
@@ -137,6 +138,17 @@ public class BugController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(bugRestMapper.toResponse(saved));
+    }
+
+    @PostMapping("/{bugId}/assign/{developerId}")
+    public ResponseEntity<AssignBugResponse> assignBugToDeveloper(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long bugId,
+            @PathVariable Long developerId) {
+
+        Bug assignedBug = bugUseCase.assignBugToDeveloper(user, bugId, developerId);
+        AssignBugResponse response = bugRestMapper.toAssignBugResponse(assignedBug);
+        return ResponseEntity.ok(response);
     }
 }
 

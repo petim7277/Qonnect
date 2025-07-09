@@ -14,5 +14,6 @@ public interface BugUseCase {
     Page<Bug> getAllBugsInATask(User user,Long taskId, Pageable pageable);
     Page<Bug> getBugsByUserId(Long userId, Pageable pageable);
     Bug reportBug(User user, Bug bug);
+    Bug assignBugToDeveloper(User assigner, Long bugId, Long developerId);
 
 }

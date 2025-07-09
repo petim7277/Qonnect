@@ -123,4 +123,10 @@ public class BugPersistenceAdapter implements BugOutputPort {
     public boolean existsByTitleAndProjectId(String title, Long projectId) {
         return bugRepository.existsByTitleAndProjectId(title,projectId);
     }
+
+    @Override
+    public Bug getBugById(Long bugId) {
+        BugEntity entity = bugRepository.findById(bugId).orElseThrow(()->new BugNotFoundException(ErrorMessages.BUG_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return bugPersistenceMapper.toBug(entity);
+    }
 }

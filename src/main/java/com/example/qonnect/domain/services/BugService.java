@@ -1,10 +1,7 @@
 package com.example.qonnect.domain.services;
 
 import com.example.qonnect.application.input.BugUseCase;
-import com.example.qonnect.application.output.BugOutputPort;
-import com.example.qonnect.application.output.OrganizationOutputPort;
-import com.example.qonnect.application.output.ProjectOutputPort;
-import com.example.qonnect.application.output.TaskOutputPort;
+import com.example.qonnect.application.output.*;
 import com.example.qonnect.domain.exceptions.BugNotFoundException;
 import com.example.qonnect.domain.exceptions.QonnectException;
 import com.example.qonnect.domain.exceptions.TaskNotFoundException;
@@ -15,7 +12,6 @@ import com.example.qonnect.domain.models.User;
 import com.example.qonnect.domain.models.enums.BugStatus;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.validators.GeneralValidator;
-import com.example.qonnect.infrastructure.adapters.input.rest.mapper.BugRestMapper;
 import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,8 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-import static com.example.qonnect.domain.validators.GeneralValidator.validateUserBelongsToProjectOrganization;
-import static com.example.qonnect.domain.validators.GeneralValidator.validateUserExists;
+import static com.example.qonnect.domain.validators.GeneralValidator.*;
 import static com.example.qonnect.domain.validators.InputValidator.validateInput;
 
 @Service
@@ -39,6 +34,7 @@ public class BugService implements BugUseCase {
     private final BugOutputPort bugOutputPort;
     private final TaskOutputPort taskOutputPort;
     private final ProjectOutputPort projectOutputPort;
+    private final UserOutputPort userOutputPort;
 
 
     @Override
@@ -240,9 +236,6 @@ public class BugService implements BugUseCase {
 
         validateInput(bug.getTitle());
         validateInput(bug.getDescription());
-//        validateInput(bug.getStatus().name());
-//        validateInput(bug.getSeverity().name());
-//        validateInput(bug.getPriority().name());
         validateInput(bug.getDescription());
 
         if (bugOutputPort.existsByTitleAndProjectId(bug.getTitle(), bug.getProjectId())) {
@@ -255,6 +248,32 @@ public class BugService implements BugUseCase {
 
         return bugOutputPort.saveBug(bug);
     }
+
+    @Override
+    public Bug assignBugToDeveloper(User assigner, Long bugId, Long developerId) {
+        Bug bug = bugOutputPort.getBugById(bugId);
+        User developer = userOutputPort.getUserById(developerId);
+
+        validateUserBelongsOrganization(assigner, bug.getCreatedBy().getOrganization().getId());
+        validateUserBelongsOrganization(developer, bug.getCreatedBy().getOrganization().getId());
+
+        if (!(assigner.getRole() == Role.ADMIN || assigner.getRole() == Role.QA_ENGINEER)) {
+            throw new AccessDeniedException(ErrorMessages.ACCESS_DENIED_TO_ASSIGN_BUG);
+        }
+
+
+        if (developer.getRole() != Role.DEVELOPER) {
+            throw new IllegalArgumentException("Assigned user must be a developer");
+        }
+
+        if(bug.getAssignedTo()!=null&& bug.getAssignedTo().getId().equals(developer.getId())) {
+            throw new IllegalArgumentException("Assigned user is already assigned to this bug");
+        }
+
+        bug.setAssignedTo(developer);
+        return bugOutputPort.saveBug(bug);
+    }
+
 
     private boolean belongsToSameOrganization(User user, Project project) {
         return user.getOrganization().getId().equals(project.getOrganizationId());
