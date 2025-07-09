@@ -92,7 +92,7 @@ public class BugPersistenceAdapter implements BugOutputPort {
     public Page<Bug> getBugsByUserId(Long userId, Pageable pageable) {
         log.info("Getting bugs for user ID: {} with pagination: {}", userId, pageable);
 
-        Page<BugEntity> bugEntities = bugRepository.findByCreatedBy_Id(userId, pageable);
+        Page<BugEntity> bugEntities = bugRepository.findByAssignedTo_Id(userId, pageable);
 
         Page<Bug> bugs = bugEntities.map(bugPersistenceMapper::toBug);
         log.info("Found {} bugs for user ID: {}", bugs.getTotalElements(), userId);

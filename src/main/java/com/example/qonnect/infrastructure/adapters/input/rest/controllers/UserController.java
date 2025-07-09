@@ -223,24 +223,49 @@ public class UserController {
     }
 
 
+    @Operation(summary = "View user profile", description = "Retrieves the profile of the authenticated user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User profile retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = UserProfileResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @SecurityRequirement(name = "Keycloak")
     @GetMapping("/userProfile")
     public ResponseEntity<UserProfileResponse> getUserProfile(@AuthenticationPrincipal User user) {
         User profile = viewUserProfileUseCase.viewUserProfile(user.getEmail());
         return ResponseEntity.ok(userRestMapper.toUserProfileResponse(profile));
     }
 
+    @Operation(summary = "Complete Invitation", description = "Allows an invited user to complete their profile setup")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Invitation completed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data or token"),
+            @ApiResponse(responseCode = "404", description = "Invitation token not found or expired")
+    })
     @PostMapping("/complete-invitation")
-    public ResponseEntity<?> completeInvitation(@RequestParam String token,
-                                                @RequestBody @Valid CompleteInviteRequest request) {
-        acceptInviteUseCase.completeInvitation(token, request.getFirstName(),request.getLastName(),request.getPassword());
+    public ResponseEntity<?> completeInvitation(
+            @RequestParam @Parameter(description = "Invitation token sent to email") String token,
+            @RequestBody @Valid @Parameter(description = "User details to complete invitation") CompleteInviteRequest request
+    ) {
+        acceptInviteUseCase.completeInvitation(token, request.getFirstName(), request.getLastName(), request.getPassword());
         return ResponseEntity.ok(new CompleteInviteResponse("Invitation details completed. Please verify OTP sent to your email."));
     }
 
+    @Operation(summary = "Verify Invitation OTP", description = "Verifies the OTP for invited users and activates their account")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OTP verified and account activated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid OTP format or missing data"),
+            @ApiResponse(responseCode = "404", description = "User not found or OTP expired")
+    })
     @PostMapping("/verify-invitation")
-    public ResponseEntity<?> verifyInvitation(@RequestBody @Valid VerifyInviteOtpRequest request) {
+    public ResponseEntity<?> verifyInvitation(
+            @RequestBody @Valid @Parameter(description = "OTP verification for invited user") VerifyInviteOtpRequest request
+    ) {
         acceptInviteUseCase.verifyOtpAndActivate(request.getEmail(), request.getOtp());
         return ResponseEntity.ok(new VerifyInviteResponse("Account verified and activated successfully."));
     }
+
 
 
 

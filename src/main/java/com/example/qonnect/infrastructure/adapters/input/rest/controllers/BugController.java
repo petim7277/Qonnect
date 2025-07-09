@@ -24,11 +24,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/bugs")
 @SecurityRequirement(name = "Keycloak")
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Bugs", description = "Operations related to bug tracking and assignment")
 public class BugController {
 
     private final BugUseCase bugUseCase;
     private final BugRestMapper bugRestMapper;
-
 
     @Operation(summary = "Get Bug by ID", description = "Get a bug using its ID and the task it belongs to.")
     @ApiResponses({
@@ -46,6 +46,10 @@ public class BugController {
     }
 
     @Operation(summary = "Update Bug Details", description = "Update the title or description of a bug.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bug updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid update request")
+    })
     @PatchMapping("/task/{taskId}/details")
     public ResponseEntity<BugResponse> updateBugDetails(
             @AuthenticationPrincipal User user,
@@ -58,6 +62,10 @@ public class BugController {
     }
 
     @Operation(summary = "Update Bug Status", description = "Update the status of a bug.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bug status updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid update request")
+    })
     @PatchMapping("/task/{taskId}/status")
     public ResponseEntity<BugResponse> updateBugStatus(
             @AuthenticationPrincipal User user,
@@ -70,6 +78,10 @@ public class BugController {
     }
 
     @Operation(summary = "Update Bug Severity", description = "Update the severity of a bug.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bug severity updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid update request")
+    })
     @PatchMapping("/task/{taskId}/severity")
     public ResponseEntity<BugResponse> updateBugSeverity(
             @AuthenticationPrincipal User user,
@@ -82,6 +94,10 @@ public class BugController {
     }
 
     @Operation(summary = "Get All Bugs in a Project", description = "Retrieve paginated bugs from a project.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bugs retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Project not found")
+    })
     @GetMapping("/project/{projectId}")
     public ResponseEntity<Page<BugResponse>> getAllBugsInProject(
             @AuthenticationPrincipal User user,
@@ -89,14 +105,16 @@ public class BugController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        if (page < 0) page = 0;
-        if (size < 0) size = 10;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Bug> bugs = bugUseCase.getAllBugsInAProject(user, projectId, pageable);
         return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
     }
 
     @Operation(summary = "Get All Bugs in a Task", description = "Retrieve paginated bugs from a specific task.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bugs retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Task not found")
+    })
     @GetMapping("/task/{taskId}")
     public ResponseEntity<Page<BugResponse>> getAllBugsInTask(
             @AuthenticationPrincipal User user,
@@ -104,34 +122,38 @@ public class BugController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        if (page < 0) page = 0;
-        if (size < 0) size = 10;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Bug> bugs = bugUseCase.getAllBugsInATask(user, taskId, pageable);
         return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
     }
 
     @Operation(summary = "Get Bugs by User", description = "Retrieve paginated bugs created by a specific user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bugs retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
     @GetMapping("/user/{userId}")
     public ResponseEntity<Page<BugResponse>> getBugsByUserId(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        if (page < 0) page = 0;
-        if (size < 0) size = 10;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Bug> bugs = bugUseCase.getBugsByUserId(userId, pageable);
         return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
     }
 
+    @Operation(summary = "Report a new bug", description = "Allows a QA Engineer or user to report a bug in a project.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Bug reported successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
     @PostMapping("/{projectId}/bug")
     public ResponseEntity<BugResponse> reportBug(
             @PathVariable Long projectId,
             @RequestBody @Valid CreateBugRequest request,
             @AuthenticationPrincipal User user
     ) {
-
         Bug domainBug = bugRestMapper.toDomain(request);
         domainBug.setProjectId(projectId);
         Bug saved = bugUseCase.reportBug(user, domainBug);
@@ -140,6 +162,12 @@ public class BugController {
                 .body(bugRestMapper.toResponse(saved));
     }
 
+    @Operation(summary = "Assign Bug to Developer", description = "Allows an admin to assign a reported bug to a developer.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bug assigned successfully"),
+            @ApiResponse(responseCode = "404", description = "Bug or developer not found"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized assignment attempt")
+    })
     @PostMapping("/{bugId}/assign/{developerId}")
     public ResponseEntity<AssignBugResponse> assignBugToDeveloper(
             @AuthenticationPrincipal User user,
@@ -151,4 +179,3 @@ public class BugController {
         return ResponseEntity.ok(response);
     }
 }
-

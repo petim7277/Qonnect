@@ -14,7 +14,8 @@ import org.mapstruct.Mapping;
 public interface BugRestMapper {
 
 
-    Bug toDomain(@Valid UpdateBugRequest request);
+    @Mapping(target = "id", source = "id")
+    Bug toDomain(UpdateBugRequest request);
 
     @Mapping(target = "status", ignore = true)
     Bug toDomain(@Valid CreateBugRequest request);
