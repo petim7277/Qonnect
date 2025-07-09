@@ -33,8 +33,8 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
 
     @Override
     public Project saveProject(Project project) {
-        if (project.getId() != null && !projectRepository.existsById(project.getId())) {
-            throw new ProjectNotFoundException(ErrorMessages.PROJECT_NOT_FOUND, HttpStatus.NOT_FOUND);
+        if (projectRepository.existsById(project.getId())) {
+            throw new ProjectNotFoundException(ErrorMessages.PROJECT_EXIST_ALREADY, HttpStatus.NOT_FOUND);
         }
 
         OrganizationEntity orgEntity = organizationRepository.findById(project.getOrganizationId())
@@ -43,9 +43,9 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
         ProjectEntity entity = projectPersistenceMapper.toProjectEntity(project);
         entity.setOrganization(orgEntity);
 
-        entity = projectRepository.save(entity);
+        ProjectEntity savedEntity = projectRepository.save(entity);
 
-        return projectPersistenceMapper.toProject(entity);
+        return projectPersistenceMapper.toProject(savedEntity);
     }
 
 
@@ -120,6 +120,11 @@ public class ProjectPersistenceAdapter implements ProjectOutputPort {
             }
             project.getTeamMembers().removeIf(u -> u.getId().equals(userToBeRemoved.getId()));
             projectRepository.save(projectPersistenceMapper.toProjectEntity(project));
+    }
+
+    @Override
+    public void deleteProjectById(Long id) {
+        projectRepository.deleteById(id);
     }
 
     @Override

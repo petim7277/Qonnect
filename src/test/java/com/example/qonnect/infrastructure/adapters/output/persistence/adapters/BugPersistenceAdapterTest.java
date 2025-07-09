@@ -10,7 +10,7 @@ import com.example.qonnect.domain.models.enums.BugSeverity;
 import com.example.qonnect.domain.models.enums.BugStatus;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.BugEntity;
-import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.BugRepository;
+import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.BugReposit
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OrganizationRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,22 +18,37 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.*;
 
 import java.time.LocalDateTime;
+
+import java.util.List;
+
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+
 class BugPersistenceAdapterTest {
 
     @Autowired
     private BugPersistenceAdapter adapter;
+
 
     @Autowired
     private BugRepository bugRepository;
 
     @Autowired
     private UserOutputPort userOutputPort;
+
+    @Autowired
+    private BugRepository bugRepository;
+    @Autowired
+    private UserOutputPort userOutputPort;
+    private Bug bug;
+    private Pageable pageable;
+    private User createdBy;
+
 
     @Autowired
     private ProjectOutputPort projectOutputPort;
@@ -52,6 +67,14 @@ class BugPersistenceAdapterTest {
     private Organization organization;
     @Autowired
     private OrganizationRepository organizationRepository;
+
+    private Project project;
+    private Task task;
+    @Autowired
+    private TaskOutputPort taskOutputPort;
+    @Autowired private OrganizationOutputPort organizationOutputPort;
+    private Organization organization;
+
 
     @BeforeEach
     void setUp() {
@@ -72,6 +95,7 @@ class BugPersistenceAdapterTest {
                 .build();
         task = taskOutputPort.saveTask(task);
 
+
         createdBy = User.builder()
                 .firstName("Test")
                 .lastName("User")
@@ -80,9 +104,27 @@ class BugPersistenceAdapterTest {
                 .enabled(true)
                 .invited(false)
                 .role(Role.DEVELOPER)
+
                 .organization(organization)
                 .build();
         createdBy = userOutputPort.saveUser(createdBy);
+
+
+                .build();
+        createdBy = userOutputPort.saveUser(createdBy);
+
+        organization =  Organization.builder()
+                .name("Test Org")
+                .build();
+        organizationOutputPort.saveOrganization(organization);
+
+
+        task = Task.builder()
+                .title("naming")
+                .projectId(project.getId())
+                .build();
+        task = taskOutputPort.saveTask(task);
+
 
         bug = Bug.builder()
                 .title("Adapter Test Bug")
@@ -94,6 +136,7 @@ class BugPersistenceAdapterTest {
                 .status(BugStatus.OPEN)
                 .createdAt(LocalDateTime.now())
                 .build();
+
     }
 
     @AfterEach
@@ -104,6 +147,31 @@ class BugPersistenceAdapterTest {
         projectOutputPort.deleteProject(project);
         organizationRepository.deleteById(organization.getId());
     }
+
+
+
+        project = Project.builder()
+                .name("naming")
+                .tasks(List.of(task))
+                .bugs(List.of(bug))
+                .organizationId(organization.getId())
+                .build();
+        project = projectOutputPort.saveProject(project);
+
+    }
+
+
+
+    @AfterEach
+    void tearDown() {
+        userOutputPort.deleteUserById(createdBy.getId());
+        projectOutputPort.deleteProjectById(project.getId());
+        taskOutputPort.deleteTaskById(task.getId());
+        bugRepository.deleteAll();
+        organizationOutputPort.deleteById(organization.getId());
+    }
+
+
 
     @Test
     void shouldSaveBugSuccessfully() {
@@ -136,6 +204,7 @@ class BugPersistenceAdapterTest {
 
     @Test
     void shouldGetAllBugsByProjectId() {
+
         Bug bug1 = adapter.saveBug(bug);
 
         Bug bug2 = Bug.builder()
@@ -153,11 +222,22 @@ class BugPersistenceAdapterTest {
         Page<Bug> result = adapter.getAllBugsByProjectId(project.getId(), pageable);
 
         assertEquals(2, result.getTotalElements());
+
+        adapter.saveBug(bug);
+        bug.setTitle("Another Bug");
+        adapter.saveBug(bug);
+
+        Page<Bug> result = adapter.getAllBugsByProjectId(20L, pageable);
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals("Another Bug", result.getContent().get(0).getTitle());
+
     }
 
     @Test
     void shouldGetAllBugsByTaskId() {
         adapter.saveBug(bug);
+
 
         Bug another = Bug.builder()
                 .title("Task Bug 2")
@@ -173,12 +253,19 @@ class BugPersistenceAdapterTest {
 
         Page<Bug> result = adapter.getAllBugsByTaskId(task.getId(), pageable);
 
+        bug.setTitle("Task Bug");
+        adapter.saveBug(bug);
+
+        Page<Bug> result = adapter.getAllBugsByTaskId(10L, pageable);
+
+
         assertEquals(2, result.getTotalElements());
     }
 
     @Test
     void shouldGetBugsByUserId() {
         adapter.saveBug(bug);
+
 
         Bug second = Bug.builder()
                 .title("User Bug")
@@ -191,6 +278,10 @@ class BugPersistenceAdapterTest {
                 .createdAt(LocalDateTime.now())
                 .build();
         adapter.saveBug(second);
+
+        bug.setTitle("User Bug");
+        adapter.saveBug(bug);
+
 
         Page<Bug> result = adapter.getBugsByUserId(createdBy.getId(), pageable);
 
@@ -224,6 +315,7 @@ class BugPersistenceAdapterTest {
                 () -> adapter.deleteBug(12345L));
     }
 
+
     @Test
     void shouldReturnTrue_whenBugExistsByTitleAndProjectId() {
         adapter.saveBug(bug);
@@ -236,4 +328,5 @@ class BugPersistenceAdapterTest {
         boolean exists = adapter.existsByTitleAndProjectId("Unknown Bug", project.getId());
         assertFalse(exists);
     }
+
 }
