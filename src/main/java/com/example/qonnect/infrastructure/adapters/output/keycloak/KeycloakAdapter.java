@@ -245,10 +245,6 @@ public class KeycloakAdapter implements IdentityManagementOutputPort {
 
 
     public void changePassword(User userIdentity) {
-        if (!confirmValidLoginDetails(userIdentity)) {
-            throw new IdentityManagementException("Invalid current password", HttpStatus.BAD_REQUEST);
-        }
-
         Keycloak keycloak = getKeycloakAdmin();
 
         UserRepresentation user = keycloak.realm(realm)
@@ -261,32 +257,14 @@ public class KeycloakAdapter implements IdentityManagementOutputPort {
         CredentialRepresentation newCred = new CredentialRepresentation();
         newCred.setTemporary(false);
         newCred.setType(CredentialRepresentation.PASSWORD);
-        newCred.setValue(userIdentity.getNewPassword());
+        newCred.setValue(userIdentity.getNewPassword()); // raw
 
         keycloak.realm(realm).users().get(user.getId()).resetPassword(newCred);
     }
 
 
-    public boolean confirmValidLoginDetails(User user) {
-        try {
 
-            Keycloak keycloak = KeycloakBuilder.builder()
-                    .serverUrl(serverUrl)
-                    .realm(realm)
-                    .clientId(clientId)
-                    .clientSecret(clientSecret)
-                    .username(user.getEmail())
-                    .password(user.getPassword())
-                    .grantType("password")
-                    .build();
 
-            AccessTokenResponse token = keycloak.tokenManager().getAccessToken();
-            return token != null && !token.getToken().isEmpty();
-
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
 
     private Keycloak getKeycloakAdmin() {
@@ -299,17 +277,7 @@ public class KeycloakAdapter implements IdentityManagementOutputPort {
                 .build();
     }
 
-//    private Keycloak getKeycloakWithUserCredentials(User userIdentity) {
-//        return KeycloakBuilder.builder()
-//                .serverUrl(serverUrl)
-//                .realm(realm)
-//                .clientId(clientId)
-//                .clientSecret(clientSecret)
-//                .grantType("password")
-//                .username(userIdentity.getEmail())
-//                .password(userIdentity.getPassword())
-//                .build();
-//    }
+
 
 
 
