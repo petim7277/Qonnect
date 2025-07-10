@@ -138,7 +138,6 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswo
     }
 
 
-    @Override
     public void changePassword(String email, String oldPassword, String newPassword) {
         validateEmail(email);
         validatePassword(oldPassword);
@@ -153,14 +152,18 @@ public class UserService implements SignUpUseCase, VerifyOtpUseCase, ResetPasswo
             throw new IdentityManagementException(ErrorMessages.NEW_PASSWORD_SAME_AS_OLD, HttpStatus.BAD_REQUEST);
         }
 
+        User tempIdentity = new User();
+        tempIdentity.setEmail(email);
+        tempIdentity.setPassword(oldPassword);
+        tempIdentity.setNewPassword(newPassword);
+
+        identityManagementOutputPort.changePassword(tempIdentity);
+
         String encodedNewPassword = passwordEncoder.encode(newPassword);
-        user.setNewPassword(encodedNewPassword);
         user.setPassword(encodedNewPassword);
-
-        identityManagementOutputPort.changePassword(user);
-
         userOutputPort.saveUser(user);
     }
+
 
 
     @Override
