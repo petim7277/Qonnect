@@ -212,6 +212,15 @@ public class BugService implements BugUseCase {
         return bugs;
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public Page<Bug> getBugsByCreatedById(Long userId, Pageable pageable) {
+        if (userId == null) {
+            throw new QonnectException(ErrorMessages.USER_NOT_FOUND, HttpStatus.BAD_REQUEST);
+        }
+        return bugOutputPort.getBugsByCreatedById(userId, pageable);
+    }
+
 
     public Bug reportBug(User reporter, Bug bug) {
         Project project = projectOutputPort.getProjectById(bug.getProjectId());

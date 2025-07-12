@@ -25,4 +25,6 @@ public interface BugOutputPort {
 
     Bug getBugById(Long bugId);
 
+    Page<Bug> getBugsByCreatedById(Long userId, Pageable pageable);
+
 }
