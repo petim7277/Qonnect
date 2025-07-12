@@ -129,4 +129,12 @@ public class BugPersistenceAdapter implements BugOutputPort {
         BugEntity entity = bugRepository.findById(bugId).orElseThrow(()->new BugNotFoundException(ErrorMessages.BUG_NOT_FOUND, HttpStatus.NOT_FOUND));
         return bugPersistenceMapper.toBug(entity);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Bug> getBugsByCreatedById(Long userId, Pageable pageable) {
+        Page<BugEntity> bugEntities = bugRepository.findByCreatedBy_Id(userId, pageable);
+        return bugEntities.map(bugPersistenceMapper::toBug);
+    }
+
 }

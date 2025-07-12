@@ -9,6 +9,7 @@ import com.example.qonnect.domain.models.enums.BugSeverity;
 import com.example.qonnect.domain.models.enums.BugStatus;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.infrastructure.adapters.input.rest.mapper.BugRestMapper;
+import com.example.qonnect.infrastructure.adapters.input.rest.messages.ErrorMessages;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,8 +27,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BugServiceTest {
@@ -225,6 +225,27 @@ class BugServiceTest {
     void getBugsByUserId_shouldThrow_whenAssignedToIdNull() {
         assertThrows(QonnectException.class,
                 () -> bugService.getBugsByAssignedToId(null, pageable));
+    }
+
+
+    @Test
+    void getBugsByCreatedById_success() {
+        Page<Bug> page = new PageImpl<>(List.of(bug));
+        when(bugOutputPort.getBugsByCreatedById(user.getId(), pageable)).thenReturn(page);
+
+        Page<Bug> result = bugService.getBugsByCreatedById(user.getId(), pageable);
+
+        assertEquals(1, result.getTotalElements());
+        verify(bugOutputPort).getBugsByCreatedById(user.getId(), pageable);
+    }
+
+    @Test
+    void getBugsByCreatedById_shouldThrow_whenUserIdIsNull() {
+        QonnectException ex = assertThrows(QonnectException.class, () ->
+                bugService.getBugsByCreatedById(null, pageable));
+
+        assertEquals(ErrorMessages.USER_NOT_FOUND, ex.getMessage());
+        verifyNoInteractions(bugOutputPort);
     }
 
 
