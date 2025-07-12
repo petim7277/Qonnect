@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 public class VerifyInviteOtpRequest {
 
-    private String email;
+    private String inviteToken;
 
     private String otp;
 }

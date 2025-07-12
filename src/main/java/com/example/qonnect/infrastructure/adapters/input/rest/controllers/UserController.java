@@ -235,7 +235,7 @@ public class UserController {
     public ResponseEntity<?> verifyInvitation(
             @RequestBody @Valid @Parameter(description = "OTP verification for invited user") VerifyInviteOtpRequest request
     ) {
-        acceptInviteUseCase.verifyOtpAndActivate(request.getEmail(), request.getOtp());
+        acceptInviteUseCase.verifyOtpAndActivate(request.getInviteToken(), request.getOtp());
         return ResponseEntity.ok(new VerifyInviteResponse("Account verified and activated successfully."));
     }
 
