@@ -212,19 +212,19 @@ class BugServiceTest {
     }
 
     @Test
-    void getBugsByUserId_success() {
+    void getBugsByAssignedToId_success() {
         Page<Bug> page = new PageImpl<>(List.of(bug));
         when(bugOutputPort.getBugsByUserId(user.getId(), pageable)).thenReturn(page);
 
-        Page<Bug> result = bugService.getBugsByUserId(user.getId(), pageable);
+        Page<Bug> result = bugService.getBugsByAssignedToId(user.getId(), pageable);
 
         assertEquals(1, result.getTotalElements());
     }
 
     @Test
-    void getBugsByUserId_shouldThrow_whenUserIdNull() {
+    void getBugsByUserId_shouldThrow_whenAssignedToIdNull() {
         assertThrows(QonnectException.class,
-                () -> bugService.getBugsByUserId(null, pageable));
+                () -> bugService.getBugsByAssignedToId(null, pageable));
     }
 
 

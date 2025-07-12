@@ -139,7 +139,7 @@ public class BugController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Bug> bugs = bugUseCase.getBugsByUserId(userId, pageable);
+        Page<Bug> bugs = bugUseCase.getBugsByAssignedToId(userId, pageable);
         return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
     }
 
