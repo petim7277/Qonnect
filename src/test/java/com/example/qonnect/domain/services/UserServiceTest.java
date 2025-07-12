@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -198,19 +199,20 @@ class UserServiceTest {
 
         String encodedOldPassword = passwordEncoder.encode(oldPassword);
         user.setPassword(encodedOldPassword);
-
         when(userOutputPort.getUserByEmail(email)).thenReturn(user);
-        String encodedNewPassword = passwordEncoder.encode(newPassword);
 
         userService.changePassword(email, oldPassword, newPassword);
-
         assertTrue(passwordEncoder.matches(newPassword, user.getPassword()));
-        assertEquals(user.getNewPassword(), user.getPassword());
 
-        verify(identityManagementOutputPort).changePassword(user);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(identityManagementOutputPort).changePassword(captor.capture());
+        User passedUser = captor.getValue();
+
+        assertEquals(email, passedUser.getEmail());
+        assertEquals(newPassword, passedUser.getNewPassword());
+
         verify(userOutputPort).saveUser(user);
     }
-
 
     @Test
     void testChangePassword_Fails_IncorrectOldPassword() {

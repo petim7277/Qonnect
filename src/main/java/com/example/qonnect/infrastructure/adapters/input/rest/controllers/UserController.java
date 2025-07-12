@@ -34,7 +34,6 @@ import java.time.LocalDateTime;
 @Tag(name = "Users", description = "Operations related to user authentication and management")
 public class UserController {
 
-    private final SignUpUseCase signUpUseCase;
     private final UserRestMapper userRestMapper;
     private final VerifyOtpUseCase verifyOtpUseCase;
     private final ResetPasswordUseCase resetPasswordUseCase;
@@ -45,32 +44,7 @@ public class UserController {
     private final LoginUseCase loginUseCase;
     private final AcceptInviteUseCase acceptInviteUseCase;
 
-    @Operation(summary = "Register a new user", description = "Creates a new user account")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "User registered successfully", content = @Content(schema = @Schema(implementation = RegisterUserResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid user data"),
-            @ApiResponse(responseCode = "409", description = "User already exists"),
-            @ApiResponse(responseCode = "400", description = "fields are  empty"),
-    })
-    @PostMapping("/user")
-    public ResponseEntity<RegisterUserResponse> registerUser(
-            @RequestBody @Valid @Parameter(description = "User registration details") RegisterUserRequest registerRequest)
-            throws UserNotFoundException, UserAlreadyExistException, IdentityManagementException {
 
-        log.info("Registration request for email: {}", registerRequest.getEmail());
-
-        User user = userRestMapper.toUser(registerRequest);
-        user.setPassword(registerRequest.getPassword());
-        user.setRole(Role.from(registerRequest.getRole()));
-        User registeredUser = signUpUseCase.signUp(user);
-
-        RegisterUserResponse response = userRestMapper.toCreateUserResponse(registeredUser);
-        response.setMessage("Registration successful");
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
-    }
 
     @Operation(summary = "Verify user OTP", description = "Verifies the OTP sent to the user's email")
     @ApiResponses({
@@ -128,11 +102,10 @@ public class UserController {
     })
     @SecurityRequirement(name = "Keycloak")
     @PostMapping("/password/reset/initiate")
-    public ResponseEntity<InitiateResetPasswordResponse> initiatePasswordReset(@AuthenticationPrincipal User user
-
+    public ResponseEntity<InitiateResetPasswordResponse> initiatePasswordReset(
+   @RequestBody InitiatePasswordRequest request
     ) {
-        resetPasswordUseCase.initiateReset(user.getEmail());
-
+        resetPasswordUseCase.initiateReset(request.getEmail());
         return ResponseEntity.ok(new InitiateResetPasswordResponse("OTP sent to your email for password reset.",LocalDateTime.now()));
     }
 
@@ -148,10 +121,10 @@ public class UserController {
     })
     @SecurityRequirement(name = "Keycloak")
     @PostMapping("/password/reset/complete")
-    public ResponseEntity<CompleteResetPasswordResponse> completePasswordReset(@AuthenticationPrincipal User user,
+    public ResponseEntity<CompleteResetPasswordResponse> completePasswordReset(@RequestParam String email,
             @Valid @RequestBody CompleteResetPasswordRequest request
     ) {
-        resetPasswordUseCase.completeReset(user.getEmail(), request.getOtp(), request.getNewPassword());
+        resetPasswordUseCase.completeReset(email, request.getOtp(), request.getNewPassword());
 
         return ResponseEntity.ok(new CompleteResetPasswordResponse("Password reset successful.",LocalDateTime.now()));
     }

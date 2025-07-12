@@ -9,12 +9,13 @@ import com.example.qonnect.domain.models.*;
 import com.example.qonnect.domain.models.enums.BugSeverity;
 import com.example.qonnect.domain.models.enums.BugStatus;
 import com.example.qonnect.domain.models.enums.Role;
-import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.BugRepository;
-import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OrganizationRepository;
+import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.*;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.*;
+import org.springframework.test.annotation.Rollback;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -43,9 +44,16 @@ class BugPersistenceAdapterTest {
     private Bug bug;
     private Pageable pageable;
     private User createdBy;
+    private User assignedTo;
     private Project project;
     private Task task;
     private Organization organization;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private ProjectRepository projectRepository;
+    @Autowired
+    private TaskRepository taskRepository;
 
     @BeforeEach
     void setUp() {
@@ -76,6 +84,20 @@ class BugPersistenceAdapterTest {
                         .build()
         );
 
+         assignedTo = userOutputPort.saveUser(
+                User.builder()
+                        .firstName("Dev")
+                        .lastName("Assignee")
+                        .email("assigneduser@example.com")
+                        .password("password")
+                        .enabled(true)
+                        .invited(false)
+                        .role(Role.DEVELOPER)
+                        .organization(organization)
+                        .build()
+        );
+
+
         bug = Bug.builder()
                 .title("Adapter Test Bug")
                 .description("Bug created for adapter tests")
@@ -91,11 +113,20 @@ class BugPersistenceAdapterTest {
     @AfterEach
     void tearDown() {
         bugRepository.deleteAll();
-        if (createdBy != null) userOutputPort.deleteUserById(createdBy.getId());
-        if (task != null) taskOutputPort.deleteTaskById(task.getId());
-        if (project != null) projectOutputPort.deleteProject(project);
+
+        if (task != null) taskRepository.deleteById(task.getId());
+        if (project != null) projectRepository.deleteById(project.getId());
         if (organization != null) organizationRepository.deleteById(organization.getId());
+
+        if (createdBy != null && userRepository.existsById(createdBy.getId())) {
+            userRepository.deleteById(createdBy.getId());
+        }
+        if (assignedTo != null && userRepository.existsById(assignedTo.getId())) {
+            userRepository.deleteById(assignedTo.getId());
+        }
+
     }
+
 
     @Test
     void shouldSaveBugSuccessfully() {
@@ -159,21 +190,37 @@ class BugPersistenceAdapterTest {
 
     @Test
     void shouldGetBugsByUserId() {
-        adapter.saveBug(bug);
-        adapter.saveBug(Bug.builder()
+        Bug bug1 = Bug.builder()
+                .title("Assigned Bug")
+                .description("Bug assigned to user")
+                .taskId(task.getId())
+                .projectId(project.getId())
+                .createdBy(createdBy)
+                .assignedTo(assignedTo)
+                .severity(BugSeverity.MAJOR)
+                .status(BugStatus.OPEN)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Bug bug2 = Bug.builder()
                 .title("User Bug")
                 .description("Owned by same user")
                 .taskId(task.getId())
                 .projectId(project.getId())
                 .createdBy(createdBy)
+                .assignedTo(assignedTo)
                 .severity(BugSeverity.MAJOR)
                 .status(BugStatus.OPEN)
                 .createdAt(LocalDateTime.now())
-                .build());
+                .build();
 
-        Page<Bug> result = adapter.getBugsByUserId(createdBy.getId(), pageable);
+        adapter.saveBug(bug1);
+        adapter.saveBug(bug2);
+
+        Page<Bug> result = adapter.getBugsByUserId(assignedTo.getId(), pageable);
         assertEquals(2, result.getTotalElements());
     }
+
 
     @Test
     void shouldReturnTrue_whenBugExistsById() {
@@ -197,6 +244,7 @@ class BugPersistenceAdapterTest {
     void shouldThrow_whenDeletingNonExistingBug() {
         assertThrows(BugNotFoundException.class, () -> adapter.deleteBug(12345L));
     }
+
 
     @Test
     void shouldReturnTrue_whenBugExistsByTitleAndProjectId() {

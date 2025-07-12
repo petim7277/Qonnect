@@ -62,7 +62,7 @@ class TaskPersistenceAdapterTest {
     void tearDown() {
         taskRepository.deleteAll();
         userRepository.deleteAll();
-projectRepository.deleteAll();
+        projectRepository.deleteAll();
     }
 
 
@@ -154,20 +154,21 @@ projectRepository.deleteAll();
         assertTrue(taskList.stream().anyMatch(t -> t.getTitle().equals("Task 2")));
     }
 
-
     @Test
     void testGetTasksByUserId_WithPagination_Success() {
+        taskRepository.deleteAll();
+        userRepository.deleteAll();
+
         UserEntity user = new UserEntity();
         user.setFirstName("Test");
         user.setLastName("User");
-        user.setEmail("user@example.com");
+        user.setEmail("testEmail@gmail.com");
         user.setPassword("pass");
         user.setEnabled(true);
         user.setInvited(false);
         user.setRole(Role.DEVELOPER);
         user = userRepository.save(user);
 
-        // Create multiple tasks assigned to this user
         TaskEntity task1 = TaskEntity.builder()
                 .title("Assigned Task 1")
                 .description("Description 1")
@@ -189,16 +190,14 @@ projectRepository.deleteAll();
         taskRepository.save(task1);
         taskRepository.save(task2);
 
-        // Prepare pagination
         Pageable pageable = PageRequest.of(0, 10);
 
-        // Call the adapter method
         Page<Task> result = taskPersistenceAdapter.getTasksByUserId(user.getId(), pageable);
 
-        // Assertions
         assertEquals(2, result.getTotalElements());
         assertTrue(result.getContent().stream().anyMatch(t -> t.getTitle().equals("Assigned Task 1")));
         assertTrue(result.getContent().stream().anyMatch(t -> t.getTitle().equals("Assigned Task 2")));
     }
+
 
 }

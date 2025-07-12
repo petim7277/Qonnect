@@ -12,7 +12,7 @@ public interface BugUseCase {
     Bug updateBugSeverity(User user, Long taskId, Bug bug);
     Page<Bug> getAllBugsInAProject(User user,Long projectId, Pageable pageable);
     Page<Bug> getAllBugsInATask(User user,Long taskId, Pageable pageable);
-    Page<Bug> getBugsByUserId(Long userId, Pageable pageable);
+    Page<Bug> getBugsByAssignedToId(Long userId, Pageable pageable);
     Bug reportBug(User user, Bug bug);
     Bug assignBugToDeveloper(User assigner, Long bugId, Long developerId);
 

@@ -201,7 +201,7 @@ public class BugService implements BugUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Bug> getBugsByUserId(Long userId, Pageable pageable) {
+    public Page<Bug> getBugsByAssignedToId(Long userId, Pageable pageable) {
         log.info("Getting bugs for user ID: {} with pagination: {}", userId, pageable);
         if (userId == null) {
             throw new QonnectException(ErrorMessages.USER_NOT_FOUND, HttpStatus.BAD_REQUEST);

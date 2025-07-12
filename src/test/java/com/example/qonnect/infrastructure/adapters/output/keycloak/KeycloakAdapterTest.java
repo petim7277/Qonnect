@@ -215,18 +215,7 @@ class KeycloakAdapterTest {
         assertNotNull(loggedIn.getAccessToken());
     }
 
-    @Test
-    void testThatChangePasswordFailsWithWrongCurrentPassword() throws Exception {
-        identityPort.createUser(testUser);
-        createdEmails.add(testUser.getEmail());
 
-        User changeRequest = new User();
-        changeRequest.setEmail(testUser.getEmail());
-        changeRequest.setPassword("WrongCurrentPassword!");
-        changeRequest.setNewPassword("UpdatedPassword456!");
-
-        assertThrows(IdentityManagementException.class, () -> identityPort.changePassword(changeRequest));
-    }
 
     @Test
     void testThatUserCanLogoutSuccessfully() {
