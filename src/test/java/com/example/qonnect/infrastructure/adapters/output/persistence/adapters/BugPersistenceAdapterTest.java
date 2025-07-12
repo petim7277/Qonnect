@@ -221,6 +221,38 @@ class BugPersistenceAdapterTest {
         assertEquals(2, result.getTotalElements());
     }
 
+    @Test
+    void shouldGetBugsByCreatedById() {
+        Bug bug1 = Bug.builder()
+                .title("Created Bug 1")
+                .description("Created by user")
+                .taskId(task.getId())
+                .projectId(project.getId())
+                .createdBy(createdBy)
+                .severity(BugSeverity.MINOR)
+                .status(BugStatus.OPEN)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Bug bug2 = Bug.builder()
+                .title("Created Bug 2")
+                .description("Another one")
+                .taskId(task.getId())
+                .projectId(project.getId())
+                .createdBy(createdBy)
+                .severity(BugSeverity.MAJOR)
+                .status(BugStatus.OPEN)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        adapter.saveBug(bug1);
+        adapter.saveBug(bug2);
+
+        Page<Bug> result = adapter.getBugsByCreatedById(createdBy.getId(), pageable);
+        assertEquals(2, result.getTotalElements());
+    }
+
+
 
     @Test
     void shouldReturnTrue_whenBugExistsById() {
