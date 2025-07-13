@@ -42,6 +42,12 @@ class ProjectPersistenceAdapterTest {
     private User user;
     private Project project;
     private Pageable pageable;
+    @Autowired
+    private ProjectPersistenceAdapter projectPersistenceAdapter;
+    @Autowired
+    private OrganizationPersistenceAdapter organizationPersistenceAdapter;
+    @Autowired
+    private ProjectRepository projectRepository;
 
     @BeforeEach
     void setUp() {
@@ -76,10 +82,6 @@ class ProjectPersistenceAdapterTest {
 
     @AfterEach
     void tearDown() {
-        adapter.getAllProjects(org.getId(), pageable)
-                .getContent()
-                .forEach(adapter::deleteProject);
-
         organizationRepository.deleteById(org.getId());
     }
 
@@ -90,6 +92,7 @@ class ProjectPersistenceAdapterTest {
         assertNotNull(saved);
         assertNotNull(saved.getId());
         assertEquals("Qonnect", saved.getName());
+        projectPersistenceAdapter.deleteProjectById(saved.getId());
     }
 
     @Test
@@ -99,6 +102,7 @@ class ProjectPersistenceAdapterTest {
         boolean exists = adapter.existById(saved.getId());
 
         assertTrue(exists);
+        projectPersistenceAdapter.deleteProjectById(saved.getId());
     }
 
     @Test
@@ -108,6 +112,8 @@ class ProjectPersistenceAdapterTest {
         boolean exists = adapter.existsByNameAndOrganizationId("Qonnect", project.getOrganizationId());
 
         assertTrue(exists);
+        projectPersistenceAdapter.deleteProjectById(saved.getId());
+
     }
 
     @Test
@@ -128,8 +134,8 @@ class ProjectPersistenceAdapterTest {
                 .createdAt(LocalDateTime.now().minusDays(1))
                 .build();
 
-        adapter.saveProject(project1);
-        adapter.saveProject(project2);
+        Project saved1 = adapter.saveProject(project1);
+        Project saved2 = adapter.saveProject(project2);
 
         Page<Project> result = adapter.getAllProjects(org.getId(), pageable);
 
@@ -144,6 +150,10 @@ class ProjectPersistenceAdapterTest {
 
         assertTrue(hasProject1);
         assertTrue(hasProject2);
+
+        projectRepository.deleteById(saved1.getId());
+        projectRepository.deleteById(saved2.getId());
+
     }
 
     @Test
@@ -166,6 +176,8 @@ class ProjectPersistenceAdapterTest {
         assertNotNull(result);
         assertEquals(saved.getId(), result.getId());
         assertEquals(saved.getName(), result.getName());
+        projectPersistenceAdapter.deleteProjectById(saved.getId());
+
     }
 
     @Test
@@ -174,7 +186,6 @@ class ProjectPersistenceAdapterTest {
 
         assertThrows(ProjectNotFoundException.class, () -> adapter.getProjectById(invalidId));
     }
-
 
 
     @Test
@@ -188,6 +199,8 @@ class ProjectPersistenceAdapterTest {
         assertEquals("Qonnect", result.get().getName());
         assertEquals("Bug Tracker", result.get().getDescription());
         assertEquals(org.getId(), result.get().getOrganizationId());
+        projectPersistenceAdapter.deleteProjectById(saved.getId());
+
     }
 
     @Test
@@ -272,6 +285,10 @@ class ProjectPersistenceAdapterTest {
 
 
         assertTrue(exists);
+
+        projectPersistenceAdapter.deleteProjectById(saved1.getId());
+        projectPersistenceAdapter.deleteProjectById(saved2.getId());
+
     }
 
     @Test
@@ -282,6 +299,8 @@ class ProjectPersistenceAdapterTest {
                 "Qonnect", org.getId(), saved.getId());
 
         assertFalse(exists);
+        projectPersistenceAdapter.deleteProjectById(saved.getId());
+
     }
 
     @Test
@@ -292,6 +311,8 @@ class ProjectPersistenceAdapterTest {
                 "Non-existent Project", org.getId(), saved.getId());
 
         assertFalse(exists);
+        projectPersistenceAdapter.deleteProjectById(saved.getId());
+
     }
 
     @Test
@@ -318,6 +339,11 @@ class ProjectPersistenceAdapterTest {
 
 
         assertFalse(exists);
+
+        organizationPersistenceAdapter.deleteById(savedAnotherOrg.getId());
+        projectPersistenceAdapter.deleteProjectById(saved1.getId());
+        projectPersistenceAdapter.deleteProjectById(saved2.getId());
+
     }
 
     @Test
@@ -335,6 +361,8 @@ class ProjectPersistenceAdapterTest {
         assertEquals("Updated Project Name", updated.getName());
         assertEquals("Updated description", updated.getDescription());
         assertEquals(org.getId(), updated.getOrganizationId());
+        projectPersistenceAdapter.deleteProjectById(updated.getId());
+
     }
 
     @Test
@@ -371,6 +399,9 @@ class ProjectPersistenceAdapterTest {
         assertNotNull(updatedProject);
         assertFalse(updatedProject.getTeamMembers().stream()
                 .anyMatch(u -> u.getId().equals(user1.getId())));
+
+        projectPersistenceAdapter.deleteProjectById(savedProject.getId());
+
     }
 
 }

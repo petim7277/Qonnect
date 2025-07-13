@@ -43,6 +43,7 @@ class OrganizationPersistenceAdapterTest {
 
     private Organization organization;
     private User user;
+    private OrganizationEntity savedOrg;
 
     @BeforeEach
     void setUp() {
@@ -51,7 +52,7 @@ class OrganizationPersistenceAdapterTest {
                 .users(new ArrayList<>())
                 .build();
 
-        OrganizationEntity savedOrg = organizationRepository.save(orgEntity);
+      savedOrg = organizationRepository.save(orgEntity);
 
         organization = Organization.builder()
                 .id(savedOrg.getId())
@@ -77,6 +78,7 @@ class OrganizationPersistenceAdapterTest {
 
     @AfterEach
     void tearDown() {
+        organizationRepository.deleteById(savedOrg.getId());
         organizationRepository.deleteById(organization.getId());
         userRepository.deleteById(user.getId());
     }
@@ -92,6 +94,7 @@ class OrganizationPersistenceAdapterTest {
 
         assertNotNull(saved.getId());
         assertEquals("Another Org", saved.getName());
+        adapter.deleteById(saved.getId());
     }
 
     @Test

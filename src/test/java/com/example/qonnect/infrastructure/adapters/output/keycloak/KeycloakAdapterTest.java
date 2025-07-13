@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+
 class KeycloakAdapterTest {
 
     @Autowired

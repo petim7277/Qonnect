@@ -54,6 +54,8 @@ class BugPersistenceAdapterTest {
     private ProjectRepository projectRepository;
     @Autowired
     private TaskRepository taskRepository;
+    @Autowired
+    private BugPersistenceAdapter bugPersistenceAdapter;
 
     @BeforeEach
     void setUp() {
@@ -84,7 +86,7 @@ class BugPersistenceAdapterTest {
                         .build()
         );
 
-         assignedTo = userOutputPort.saveUser(
+        assignedTo = userOutputPort.saveUser(
                 User.builder()
                         .firstName("Dev")
                         .lastName("Assignee")
@@ -108,22 +110,20 @@ class BugPersistenceAdapterTest {
                 .status(BugStatus.OPEN)
                 .createdAt(LocalDateTime.now())
                 .build();
+
+        bug = adapter.saveBug(bug);
     }
 
     @AfterEach
     void tearDown() {
-        bugRepository.deleteAll();
 
-        if (task != null) taskRepository.deleteById(task.getId());
-        if (project != null) projectRepository.deleteById(project.getId());
-        if (organization != null) organizationRepository.deleteById(organization.getId());
+        taskRepository.deleteById(task.getId());
+        projectRepository.deleteById(project.getId());
+        organizationRepository.deleteById(organization.getId());
+        userRepository.deleteById(createdBy.getId());
+        userRepository.deleteById(assignedTo.getId());
+        bugRepository.deleteById(bug.getId());
 
-        if (createdBy != null && userRepository.existsById(createdBy.getId())) {
-            userRepository.deleteById(createdBy.getId());
-        }
-        if (assignedTo != null && userRepository.existsById(assignedTo.getId())) {
-            userRepository.deleteById(assignedTo.getId());
-        }
 
     }
 
@@ -144,6 +144,7 @@ class BugPersistenceAdapterTest {
         Bug result = adapter.getBugByIdAndTaskId(saved.getId(), saved.getTaskId());
         assertNotNull(result);
         assertEquals(saved.getId(), result.getId());
+
     }
 
     @Test
@@ -155,7 +156,7 @@ class BugPersistenceAdapterTest {
     @Test
     void shouldGetAllBugsByProjectId() {
         adapter.saveBug(bug);
-        adapter.saveBug(Bug.builder()
+       Bug anotherBug = adapter.saveBug(Bug.builder()
                 .title("Another Bug")
                 .description("Different bug")
                 .taskId(task.getId())
@@ -168,12 +169,15 @@ class BugPersistenceAdapterTest {
 
         Page<Bug> result = adapter.getAllBugsByProjectId(project.getId(), pageable);
         assertEquals(2, result.getTotalElements());
+
+        bugRepository.deleteById(anotherBug.getId());
+
     }
 
     @Test
     void shouldGetAllBugsByTaskId() {
         adapter.saveBug(bug);
-        adapter.saveBug(Bug.builder()
+       Bug anotherBug= adapter.saveBug(Bug.builder()
                 .title("Task Bug 2")
                 .description("2nd bug")
                 .taskId(task.getId())
@@ -186,6 +190,8 @@ class BugPersistenceAdapterTest {
 
         Page<Bug> result = adapter.getAllBugsByTaskId(task.getId(), pageable);
         assertEquals(2, result.getTotalElements());
+        bugRepository.deleteById(anotherBug.getId());
+
     }
 
     @Test
@@ -214,11 +220,13 @@ class BugPersistenceAdapterTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        adapter.saveBug(bug1);
-        adapter.saveBug(bug2);
+       bug1= adapter.saveBug(bug1);
+     bug2=   adapter.saveBug(bug2);
 
         Page<Bug> result = adapter.getBugsByUserId(assignedTo.getId(), pageable);
         assertEquals(2, result.getTotalElements());
+        bugRepository.deleteById(bug1.getId());
+        bugRepository.deleteById(bug2.getId());
     }
 
     @Test
@@ -245,13 +253,14 @@ class BugPersistenceAdapterTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        adapter.saveBug(bug1);
-        adapter.saveBug(bug2);
+       bug1= adapter.saveBug(bug1);
+       bug2 = adapter.saveBug(bug2);
 
         Page<Bug> result = adapter.getBugsByCreatedById(createdBy.getId(), pageable);
-        assertEquals(2, result.getTotalElements());
+        assertEquals(3, result.getTotalElements());
+        bugRepository.deleteById(bug1.getId());
+        bugRepository.deleteById(bug2.getId());
     }
-
 
 
     @Test

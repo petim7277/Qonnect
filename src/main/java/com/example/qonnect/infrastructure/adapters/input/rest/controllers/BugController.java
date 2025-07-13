@@ -143,6 +143,17 @@ public class BugController {
         return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
     }
 
+    @GetMapping("/user/creator/{userId}")
+    public ResponseEntity<Page<BugResponse>> getBugsByCreatorId(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Bug> bugs = bugUseCase.getBugsByCreatedById(userId, pageable);
+        return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
+    }
+
     @Operation(summary = "Report a new bug", description = "Allows a QA Engineer or user to report a bug in a project.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Bug reported successfully"),
