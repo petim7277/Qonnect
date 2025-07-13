@@ -22,7 +22,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
                 )
         ),
         servers = {
-                @Server(url = "${swagger.server.url}", description = "Blog API Server")
+                @Server(url = "${swagger.server.url}", description = "Qonnect API Server")
         },
         security = {
                 @SecurityRequirement(name = "Keycloak")
