@@ -62,14 +62,18 @@ public class OrganizationService implements RegisterOrganizationAdminUseCase, In
             throw new OrganizationAlreadyExistsException(ErrorMessages.ORGANIZATION_ALREADY_EXISTS, HttpStatus.CONFLICT);
         }
 
-        Organization savedOrg = organizationOutputPort.saveOrganization(organization);
 
-        user.setOrganization(savedOrg);
         user.setRole(Role.ADMIN);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(false);
 
+
         user = identityManagementOutputPort.createUser(user);
+        Organization savedOrg = organizationOutputPort.saveOrganization(organization);
+
+        user.setOrganization(savedOrg);
+
+
         user = userOutputPort.saveUser(user);
         otpService.createOtp(user.getFirstName(),user.getEmail(), OtpType.VERIFICATION);
         return user;

@@ -5,6 +5,7 @@ import com.example.qonnect.domain.models.Otp;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.OtpEntity;
 import com.example.qonnect.infrastructure.adapters.output.persistence.mappers.OtpPersistenceMapper;
 import com.example.qonnect.infrastructure.adapters.output.persistence.repositories.OtpRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -47,6 +48,10 @@ class OtpPersistenceAdapterTest {
         otpRepository.save(entity);
         savedOtp = otpPersistenceMapper.toOtp(entity);
     }
+    @AfterEach
+    void tearDown() {
+        otpRepository.deleteById(savedOtp.getId());
+    }
 
     @Test
     void findByEmailAndOtp_shouldReturnOtp() {
@@ -68,6 +73,7 @@ class OtpPersistenceAdapterTest {
 
         assertNotNull(saved.getId());
         assertEquals("new@example.com", saved.getEmail());
+        otpRepository.deleteById(saved.getId());
     }
 
     @Test

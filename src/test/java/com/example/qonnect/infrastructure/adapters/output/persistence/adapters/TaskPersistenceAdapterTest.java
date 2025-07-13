@@ -1,8 +1,10 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.adapters;
 
 import com.example.qonnect.domain.exceptions.TaskNotFoundException;
+import com.example.qonnect.domain.models.Organization;
 import com.example.qonnect.domain.models.Project;
 import com.example.qonnect.domain.models.Task;
+import com.example.qonnect.domain.models.User;
 import com.example.qonnect.domain.models.enums.Role;
 import com.example.qonnect.domain.models.enums.TaskStatus;
 import com.example.qonnect.infrastructure.adapters.output.persistence.entities.TaskEntity;
@@ -34,37 +36,40 @@ class TaskPersistenceAdapterTest {
     @Autowired
     private TaskPersistenceAdapter taskPersistenceAdapter;
 
-    private Task savedTask;
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
-    private ProjectRepository projectRepository;
+    private ProjectPersistenceAdapter projectPersistenceAdapter;
     @Autowired
-    private ProjectPersistenceMapper projectPersistenceMapper;
+    private UserPersistenceAdapter userPersistenceAdapter;
+    private boolean skipCleanup = false;
+    private Task savedTask;
+    @Autowired
+    private OrganizationPersistenceAdapter organizationPersistenceAdapter;
 
 
     @BeforeEach
     void setUp() {
-        taskRepository.deleteAll();
-        TaskEntity entity = new TaskEntity();
+
+
+        Task entity = new Task();
         entity.setTitle("Integration Task");
         entity.setDescription("This is an integration test");
         entity.setStatus(TaskStatus.PENDING);
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
 
-        TaskEntity savedEntity = taskRepository.save(entity);
-        savedTask = taskPersistenceAdapter.getTaskByTitle(savedEntity.getTitle());
+        savedTask = taskPersistenceAdapter.saveTask(entity);
     }
 
     @AfterEach
     void tearDown() {
-        taskRepository.deleteAll();
-        userRepository.deleteAll();
-        projectRepository.deleteAll();
+        if (skipCleanup) {
+            return;
+        }
+        taskPersistenceAdapter.deleteTaskById(savedTask.getId());
     }
-
 
 
     @Test
@@ -82,6 +87,7 @@ class TaskPersistenceAdapterTest {
         assertNotNull(saved.getId());
         assertEquals("Save Test", saved.getTitle());
         assertEquals("Testing save", saved.getDescription());
+        taskPersistenceAdapter.deleteTaskById(saved.getId());
     }
 
     @Test
@@ -101,6 +107,9 @@ class TaskPersistenceAdapterTest {
 
     @Test
     void testDeleteTaskById_Success() {
+
+        skipCleanup = true;
+
         Long taskId = savedTask.getId();
 
         assertTrue(taskRepository.existsById(taskId));
@@ -120,14 +129,20 @@ class TaskPersistenceAdapterTest {
 
     @Test
     void testGetAllTasksByProjectId_Success() {
-        Long projectId = 43L;
+      Organization  organization = Organization.builder()
+                .name("Test Organization")
+                .build();
+
+      Organization savedOrg = organizationPersistenceAdapter.saveOrganization(organization);
+
         Project project = Project.builder()
                 .name("project")
+                .organizationId(savedOrg.getId())
                 .build();
-        projectRepository.save(projectPersistenceMapper.toProjectEntity(project));
+      Project savedProject=  projectPersistenceAdapter.saveProject(project);
 
 
-        TaskEntity task1 = TaskEntity.builder()
+        Task task1 = Task.builder()
                 .title("Task 1")
                 .description("Desc 1")
                 .projectId(project.getId())
@@ -135,7 +150,7 @@ class TaskPersistenceAdapterTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        TaskEntity task2 = TaskEntity.builder()
+        Task task2 = Task.builder()
                 .title("Task 2")
                 .description("Desc 2")
                 .projectId(project.getId())
@@ -144,22 +159,26 @@ class TaskPersistenceAdapterTest {
                 .build();
 
 
-        taskRepository.save(task1);
-        taskRepository.save(task2);
+        Task saved1 = taskPersistenceAdapter.saveTask(task1);
+        Task saved2 = taskPersistenceAdapter.saveTask(task2);
 
         List<Task> taskList = taskPersistenceAdapter.getAllTasksByProjectId(project.getId());
 
         assertEquals(3, taskList.size());
         assertTrue(taskList.stream().anyMatch(t -> t.getTitle().equals("Task 1")));
         assertTrue(taskList.stream().anyMatch(t -> t.getTitle().equals("Task 2")));
+
+        projectPersistenceAdapter.deleteProjectById(savedProject.getId());
+        taskPersistenceAdapter.deleteTaskById(saved1.getId());
+        taskPersistenceAdapter.deleteTaskById(saved2.getId());
+        organizationPersistenceAdapter.deleteById(savedOrg.getId());
     }
 
     @Test
     void testGetTasksByUserId_WithPagination_Success() {
-        taskRepository.deleteAll();
-        userRepository.deleteAll();
 
-        UserEntity user = new UserEntity();
+
+        User user = new User();
         user.setFirstName("Test");
         user.setLastName("User");
         user.setEmail("testEmail@gmail.com");
@@ -167,36 +186,43 @@ class TaskPersistenceAdapterTest {
         user.setEnabled(true);
         user.setInvited(false);
         user.setRole(Role.DEVELOPER);
-        user = userRepository.save(user);
 
-        TaskEntity task1 = TaskEntity.builder()
+
+        User savedUser = userPersistenceAdapter.saveUser(user);
+
+        Task task1 = Task.builder()
                 .title("Assigned Task 1")
                 .description("Description 1")
-                .assignedTo(user)
+                .assignedTo(savedUser)
                 .status(TaskStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        TaskEntity task2 = TaskEntity.builder()
+        Task task2 = Task.builder()
                 .title("Assigned Task 2")
                 .description("Description 2")
-                .assignedTo(user)
+                .assignedTo(savedUser)
                 .status(TaskStatus.IN_PROGRESS)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        taskRepository.save(task1);
-        taskRepository.save(task2);
+        Task savedTask1 = taskPersistenceAdapter.saveTask(task1);
+        Task savedTask2= taskPersistenceAdapter.saveTask(task2);
 
         Pageable pageable = PageRequest.of(0, 10);
 
-        Page<Task> result = taskPersistenceAdapter.getTasksByUserId(user.getId(), pageable);
+        Page<Task> result = taskPersistenceAdapter.getTasksByUserId(savedUser.getId(), pageable);
 
         assertEquals(2, result.getTotalElements());
         assertTrue(result.getContent().stream().anyMatch(t -> t.getTitle().equals("Assigned Task 1")));
         assertTrue(result.getContent().stream().anyMatch(t -> t.getTitle().equals("Assigned Task 2")));
+
+        taskPersistenceAdapter.deleteTaskById(savedTask1.getId());
+        taskPersistenceAdapter.deleteTaskById(savedTask2.getId());
+        userPersistenceAdapter.deleteUserById(savedUser.getId());
+
     }
 
 
