@@ -127,7 +127,7 @@ public class BugController {
         return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
     }
 
-    @Operation(summary = "Get Bugs by User", description = "Retrieve paginated bugs created by a specific user.")
+    @Operation(summary = "Get Bugs assigned to a user ", description = "Retrieve paginated bugs created by a specific user.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Bugs retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "User not found")
@@ -142,6 +142,12 @@ public class BugController {
         Page<Bug> bugs = bugUseCase.getBugsByAssignedToId(userId, pageable);
         return ResponseEntity.ok(bugs.map(bugRestMapper::toResponse));
     }
+
+    @Operation(summary = "Get Bugs created by a User", description = "Retrieve paginated bugs created by a specific user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bugs retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
 
     @GetMapping("/user/creator/{userId}")
     public ResponseEntity<Page<BugResponse>> getBugsByCreatorId(
