@@ -1,24 +1,93 @@
 package com.example.qonnect.domain.models;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.example.qonnect.domain.models.enums.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
+import org.keycloak.representations.idm.UserRepresentation;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+
+import static com.example.qonnect.domain.validators.InputValidator.*;
 
 @Setter
 @Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class User {
-
     private Long id;
     private String firstName;
     private String lastName;
     private String email;
-    private String password;
-    private List<Project> projects;
     private Role role;
 
+    @JsonIgnore
+    private String tokenType;
+
+    @JsonIgnore
+    private boolean enabled;
+
+
+    @JsonIgnore
+    private String idToken;
+
+    @JsonIgnore
+    private boolean verified;
+
+    @JsonIgnore
+    private String newPassword;
+
+    @JsonIgnore
+    private Organization organization;
+
+    @JsonIgnore
+    private String scope;
+
+    @JsonIgnore
+    @JsonProperty("access_token")
+    protected String accessToken;
+
+    @JsonIgnore
+    @JsonProperty("expires_in")
+    protected long expiresIn;
+
+    @JsonIgnore
+    @JsonProperty("refresh_expires_in")
+    protected long refreshExpiresIn;
+
+    @JsonIgnore
+    @JsonProperty("refresh_token")
+    protected String refreshToken;
+
+    @JsonIgnore
+    private boolean invited;
+
+    @JsonIgnore
+    private String inviteToken;
+
+    @JsonIgnore
+    private LocalDateTime tokenExpiresAt;
+
+    @JsonIgnore
+    private UserRepresentation userRepresentation;
+
+    @JsonIgnore
+    private String keycloakId;
+
+    @JsonIgnore
+    private String password;
+
+    @JsonIgnore
+    private Project projects;
+
+
+
+    public static void validateUserDetails(User user) {
+        validateEmail(user.getEmail());
+        validatePassword(user.getPassword());
+        validateName(user.getFirstName(), "First name");
+        validateName(user.getLastName(), "Last name");
+        validateRole(user.getRole() != null ? user.getRole().name() : null);
+    }
 }
-
-
-

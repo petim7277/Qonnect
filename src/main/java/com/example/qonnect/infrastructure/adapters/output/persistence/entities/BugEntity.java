@@ -1,9 +1,8 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.entities;
 
-import com.example.qonnect.domain.models.BugPriority;
-import com.example.qonnect.domain.models.BugSeverity;
-import com.example.qonnect.domain.models.BugStatus;
-import com.example.qonnect.domain.models.Project;
+import com.example.qonnect.domain.models.enums.BugPriority;
+import com.example.qonnect.domain.models.enums.BugSeverity;
+import com.example.qonnect.domain.models.enums.BugStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -42,8 +41,13 @@ public class BugEntity {
     private UserEntity createdBy;
 
     @ManyToOne
+    @JoinColumn(name = "task_id")
+    private TaskEntity task;
+
+    @ManyToOne
     @JoinColumn(name = "assigned_to")
     private UserEntity assignedTo;
-
     private LocalDateTime createdAt;
 }
+
+

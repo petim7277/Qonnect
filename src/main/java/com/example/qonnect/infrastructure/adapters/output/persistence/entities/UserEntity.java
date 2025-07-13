@@ -1,15 +1,15 @@
 package com.example.qonnect.infrastructure.adapters.output.persistence.entities;
 
-import com.example.qonnect.domain.models.Role;
+import com.example.qonnect.domain.models.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
-@Setter
 @Getter
+@Setter
 public class UserEntity {
 
     @Id
@@ -17,17 +17,38 @@ public class UserEntity {
     private Long id;
 
     private String firstName;
-
     private String lastName;
 
     @Column(unique = true, nullable = false)
     private String email;
 
+    private String password;
+
     private String keycloakId;
+
 
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    @ManyToMany(mappedBy = "teamMembers")
-    private List<ProjectEntity> projects;
+    @Column(nullable = true)
+    private boolean enabled;
+
+    @Column(nullable = true)
+    private boolean invited;
+
+    @ManyToOne
+    @JoinColumn(name = "organization_id")
+    private OrganizationEntity organization;
+
+    @ManyToOne
+    private ProjectEntity projects;
+
+    private LocalDateTime invitedAt;
+    private String inviteToken;
+    private LocalDateTime tokenExpiresAt;
+
+
+    @Column(nullable = true)
+    private boolean expired;
 }
+
