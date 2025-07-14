@@ -18,7 +18,7 @@ COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 1914
 
 ENTRYPOINT ["sh", "-c", "java -jar app.jar \
-  --spring.datasource.url=$DATASOURCE_-URL \
+  --spring.datasource.url=$DATASOURCE_URL \
   --spring.datasource.username=$DATASOURCE_USERNAME \
   --spring.datasource.password=$DATASOURCE_PASSWORD \
   --spring.data.redis.host=$REDIS_HOST \
